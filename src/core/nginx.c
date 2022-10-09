@@ -191,7 +191,7 @@ static char        *ngx_signal;
 
 static char **ngx_os_environ;
 
-
+// ngx_cdecl 函数调用约定 目前为空，一种好的设计思路
 int ngx_cdecl
 main(int argc, char *const *argv)
 {
@@ -202,12 +202,13 @@ main(int argc, char *const *argv)
     ngx_conf_dump_t  *cd;
     ngx_core_conf_t  *ccf;
 
+    // linux 下是个空定义 没有实际操作
     ngx_debug_init();
-
+    // ngx_strerror_init() 将系统的错误信息进行拷贝复制一份 存储到 ngx_sys_errlist变量中，网上说解决异步信号安全问题的
     if (ngx_strerror_init() != NGX_OK) {
         return 1;
     }
-
+    // ngx_get_options() 参数解析函数 设置 ngx_show_version 显示版本号、ngx_show_help 显示帮助、ngx_show_configure 显示配置文件、ngx_test_config测试 四个全局变量
     if (ngx_get_options(argc, argv) != NGX_OK) {
         return 1;
     }
@@ -221,10 +222,11 @@ main(int argc, char *const *argv)
     }
 
     /* TODO */ ngx_max_sockets = -1;
-
+    // 对几个全局时间变量初始化和更新时间
     ngx_time_init();
 
 #if (NGX_PCRE)
+    // 正则表达初始化 赋值了两个函数变量
     ngx_regex_init();
 #endif
 

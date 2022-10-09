@@ -87,14 +87,15 @@ ngx_time_update(void)
     ngx_time_t      *tp;
     struct timeval   tv;
 
+    // ngx_time_lock 一个原子变量  尝试根据一个原子变量值来加锁
     if (!ngx_trylock(&ngx_time_lock)) {
         return;
     }
-
+    // tv 为linux的结构体  记录时间，分为秒数和微秒数
     ngx_gettimeofday(&tv);
 
     sec = tv.tv_sec;
-    msec = tv.tv_usec / 1000;
+    msec = tv.tv_usec / 1000;// 毫秒
 
     ngx_current_msec = ngx_monotonic_time(sec, msec);
 

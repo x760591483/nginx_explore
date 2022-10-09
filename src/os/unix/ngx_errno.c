@@ -151,6 +151,7 @@ ngx_strerror_init(void)
 
     for (err = 0; err < 1000; err++) {
         ngx_set_errno(0);
+        // 将系统错误码对应的字符串内容
         msg = strerror(err);
 
         if (errno == EINVAL
