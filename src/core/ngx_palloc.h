@@ -18,10 +18,11 @@
  * On Windows NT it decreases a number of locked pages in a kernel.
  */
 #define NGX_MAX_ALLOC_FROM_POOL  (ngx_pagesize - 1)
-
+// 默认池的大小
 #define NGX_DEFAULT_POOL_SIZE    (16 * 1024)
-
+// 字节对齐数字
 #define NGX_POOL_ALIGNMENT       16
+// 内存池最小大小  ngx_align内存的开辟调整到临近NGX_POOL_ALIGNMENT（16）的倍数
 #define NGX_MIN_POOL_SIZE                                                     \
     ngx_align((sizeof(ngx_pool_t) + 2 * sizeof(ngx_pool_large_t)),            \
               NGX_POOL_ALIGNMENT)

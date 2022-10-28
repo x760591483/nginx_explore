@@ -184,6 +184,7 @@ static ngx_uint_t   ngx_show_version;
 static ngx_uint_t   ngx_show_configure;
 static u_char      *ngx_prefix;
 static u_char      *ngx_error_log;
+// 设置配置文件(默认是:/etc/nginx/nginx.conf)
 static u_char      *ngx_conf_file;
 static u_char      *ngx_conf_params;
 static char        *ngx_signal;
@@ -229,10 +230,11 @@ main(int argc, char *const *argv)
     // 正则表达初始化 赋值了两个函数变量
     ngx_regex_init();
 #endif
-
+    // 获取进程ID号 即调用getpid()函数
     ngx_pid = ngx_getpid();
+    // 获取父进程ID号 即调用getppid()函数
     ngx_parent = ngx_getppid();
-
+    // 日志初始化 返回全局变量的地址
     log = ngx_log_init(ngx_prefix, ngx_error_log);
     if (log == NULL) {
         return 1;
@@ -247,16 +249,17 @@ main(int argc, char *const *argv)
      * init_cycle->log is required for signal handlers and
      * ngx_process_options()
      */
-
+    // init_cycle 局部变量
     ngx_memzero(&init_cycle, sizeof(ngx_cycle_t));
     init_cycle.log = log;
+    // ngx_cycle 全局变量
     ngx_cycle = &init_cycle;
-
+    // 创建pool内存池
     init_cycle.pool = ngx_create_pool(1024, log);
     if (init_cycle.pool == NULL) {
         return 1;
     }
-
+    // 将传入的参数进行了备份保存  init_cycle传入只是将log使用
     if (ngx_save_argv(&init_cycle, argc, argv) != NGX_OK) {
         return 1;
     }
@@ -797,6 +800,7 @@ ngx_get_options(int argc, char *const *argv)
 
             case 'p':
                 if (*p) {
+                    // 设置前缀路径
                     ngx_prefix = p;
                     goto next;
                 }
@@ -909,14 +913,15 @@ ngx_save_argv(ngx_cycle_t *cycle, int argc, char *const *argv)
 
     ngx_os_argv = (char **) argv;
     ngx_argc = argc;
-
+    // 申请argc+1个存放指针的空间 最后多一个为NULL作为结尾标记
+    // ngx_argv 全局变量
     ngx_argv = ngx_alloc((argc + 1) * sizeof(char *), cycle->log);
     if (ngx_argv == NULL) {
         return NGX_ERROR;
     }
 
     for (i = 0; i < argc; i++) {
-        len = ngx_strlen(argv[i]) + 1;
+        len = ngx_strlen(argv[i]) + 1;// 添加结尾 \0位置
 
         ngx_argv[i] = ngx_alloc(len, cycle->log);
         if (ngx_argv[i] == NULL) {
@@ -925,7 +930,7 @@ ngx_save_argv(ngx_cycle_t *cycle, int argc, char *const *argv)
 
         (void) ngx_cpystrn((u_char *) ngx_argv[i], (u_char *) argv[i], len);
     }
-
+    // 最后多一个为NULL作为结尾标记
     ngx_argv[i] = NULL;
 
 #endif
@@ -941,7 +946,7 @@ ngx_process_options(ngx_cycle_t *cycle)
 {
     u_char  *p;
     size_t   len;
-
+    // ngx_prefix 全局变量 前缀路径 
     if (ngx_prefix) {
         len = ngx_strlen(ngx_prefix);
         p = ngx_prefix;
@@ -955,7 +960,7 @@ ngx_process_options(ngx_cycle_t *cycle)
             ngx_memcpy(p, ngx_prefix, len);
             p[len++] = '/';
         }
-
+        // 在cycle中保存前缀路径 且保证末尾为/结尾
         cycle->conf_prefix.len = len;
         cycle->conf_prefix.data = p;
         cycle->prefix.len = len;
@@ -995,7 +1000,7 @@ ngx_process_options(ngx_cycle_t *cycle)
 
 #endif
     }
-
+    // 设置配置文件(默认是:/etc/nginx/nginx.conf)
     if (ngx_conf_file) {
         cycle->conf_file.len = ngx_strlen(ngx_conf_file);
         cycle->conf_file.data = ngx_conf_file;

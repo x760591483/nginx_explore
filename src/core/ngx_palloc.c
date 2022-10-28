@@ -19,7 +19,7 @@ ngx_pool_t *
 ngx_create_pool(size_t size, ngx_log_t *log)
 {
     ngx_pool_t  *p;
-
+    // 申请size空间
     p = ngx_memalign(NGX_POOL_ALIGNMENT, size, log);
     if (p == NULL) {
         return NULL;
@@ -29,10 +29,12 @@ ngx_create_pool(size_t size, ngx_log_t *log)
     p->d.end = (u_char *) p + size;
     p->d.next = NULL;
     p->d.failed = 0;
-
+    // 去除信息头后剩余可用大小
     size = size - sizeof(ngx_pool_t);
+    // NGX_MAX_ALLOC_FROM_POOL 系统分页的大小 有系统函数getpagesize读取bite单位
+    // 存放存储当前小块内存的分配的最大值
     p->max = (size < NGX_MAX_ALLOC_FROM_POOL) ? size : NGX_MAX_ALLOC_FROM_POOL;
-
+    // 指向内存的起始地址，指向当前块
     p->current = p;
     p->chain = NULL;
     p->large = NULL;

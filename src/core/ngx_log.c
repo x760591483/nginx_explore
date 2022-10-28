@@ -313,17 +313,20 @@ ngx_log_errno(u_char *buf, u_char *last, ngx_err_t err)
     return buf;
 }
 
-
+// 日志初始化
 ngx_log_t *
 ngx_log_init(u_char *prefix, u_char *error_log)
 {
     u_char  *p, *name;
     size_t   nlen, plen;
 
+    // ngx_log全局变量  ngx_log_file全局变量
     ngx_log.file = &ngx_log_file;
+    // 日志等级
     ngx_log.log_level = NGX_LOG_NOTICE;
 
     if (error_log == NULL) {
+        // NGX_ERROR_LOG_PATH 编译时传递的参数 一般为  log/error.log错误日志路径
         error_log = (u_char *) NGX_ERROR_LOG_PATH;
     }
 
@@ -331,6 +334,7 @@ ngx_log_init(u_char *prefix, u_char *error_log)
     nlen = ngx_strlen(name);
 
     if (nlen == 0) {
+        // 当错误日志路径为空时  输出到屏幕 
         ngx_log_file.fd = ngx_stderr;
         return &ngx_log;
     }
@@ -360,19 +364,19 @@ ngx_log_init(u_char *prefix, u_char *error_log)
             if (name == NULL) {
                 return NULL;
             }
-
+            // ngx_cpymem函数和cpymem的返回值不一致  前者返回的是目标拷贝后的位置
             p = ngx_cpymem(name, prefix, plen);
-
+            // 判断末尾字符是否为 / 
             if (!ngx_path_separator(*(p - 1))) {
                 *p++ = '/';
             }
-
+            // 组成完整的日志地址
             ngx_cpystrn(p, error_log, nlen + 1);
 
             p = name;
         }
     }
-
+    // 打开日志文件
     ngx_log_file.fd = ngx_open_file(name, NGX_FILE_APPEND,
                                     NGX_FILE_CREATE_OR_OPEN,
                                     NGX_FILE_DEFAULT_ACCESS);
