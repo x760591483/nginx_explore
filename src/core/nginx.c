@@ -263,7 +263,7 @@ main(int argc, char *const *argv)
     if (ngx_save_argv(&init_cycle, argc, argv) != NGX_OK) {
         return 1;
     }
-
+    // init_cycle赋值一些值
     if (ngx_process_options(&init_cycle) != NGX_OK) {
         return 1;
     }
@@ -1001,18 +1001,18 @@ ngx_process_options(ngx_cycle_t *cycle)
 #endif
     }
     // 设置配置文件(默认是:/etc/nginx/nginx.conf)
-    if (ngx_conf_file) {
+    if (ngx_conf_file) { // 确定cycle->conf_file配置文件路径
         cycle->conf_file.len = ngx_strlen(ngx_conf_file);
         cycle->conf_file.data = ngx_conf_file;
 
     } else {
         ngx_str_set(&cycle->conf_file, NGX_CONF_PATH);
     }
-
+    // 具体传入的值作用  获取具体的地址 获取完整的绝对路径cycle->conf_file
     if (ngx_conf_full_name(cycle, &cycle->conf_file, 0) != NGX_OK) {
         return NGX_ERROR;
     }
-
+    // 有获取的完整的conf_file路径  获取所在目录路径cycle->conf_prefix
     for (p = cycle->conf_file.data + cycle->conf_file.len - 1;
          p > cycle->conf_file.data;
          p--)
@@ -1023,15 +1023,16 @@ ngx_process_options(ngx_cycle_t *cycle)
             break;
         }
     }
-
+    // 设置cycle 中报错日志值
     if (ngx_error_log) {
         cycle->error_log.len = ngx_strlen(ngx_error_log);
         cycle->error_log.data = ngx_error_log;
 
     } else {
+        // 设置成默认的
         ngx_str_set(&cycle->error_log, NGX_ERROR_LOG_PATH);
     }
-
+    // 由设置-g参数指定的内容
     if (ngx_conf_params) {
         cycle->conf_param.len = ngx_strlen(ngx_conf_params);
         cycle->conf_param.data = ngx_conf_params;

@@ -23,7 +23,7 @@ ngx_get_full_name(ngx_pool_t *pool, ngx_str_t *prefix, ngx_str_t *name)
     size_t      len;
     u_char     *p, *n;
     ngx_int_t   rc;
-
+    // 测试给出的name是否是绝对路径
     rc = ngx_test_full_name(name);
 
     if (rc == NGX_OK) {
@@ -35,16 +35,16 @@ ngx_get_full_name(ngx_pool_t *pool, ngx_str_t *prefix, ngx_str_t *name)
 #if (NGX_WIN32)
 
     if (rc == 2) {
-        len = rc;
+        len = rc;// windows下的特殊处理
     }
 
 #endif
-
+    // 为新的路径申请空间 
     n = ngx_pnalloc(pool, len + name->len + 1);
     if (n == NULL) {
         return NGX_ERROR;
     }
-
+    // 构建新的绝对路径
     p = ngx_cpymem(n, prefix->data, len);
     ngx_cpystrn(p, name->data, name->len + 1);
 
@@ -74,7 +74,7 @@ ngx_test_full_name(ngx_str_t *name)
     c1 = name->data[1];
 
     if (c1 == ':') {
-        c0 |= 0x20;
+        c0 |= 0x20; // 所有字符的转成小写字符
 
         if ((c0 >= 'a' && c0 <= 'z')) {
             return NGX_OK;

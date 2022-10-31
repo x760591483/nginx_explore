@@ -49,7 +49,7 @@ ngx_os_init(ngx_log_t *log)
     if (ngx_init_setproctitle(log) != NGX_OK) {
         return NGX_ERROR;
     }
-
+    // 调用unistd.h中getpagesize函数来获取内存分页大小, 单位为Byte
     ngx_pagesize = getpagesize();
     ngx_cacheline_size = NGX_CPU_CACHE_LINE;
 
