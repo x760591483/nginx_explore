@@ -30,7 +30,7 @@ ngx_os_io_t ngx_os_io = {
     0
 };
 
-
+// 进行系统相关初始化工作
 ngx_int_t
 ngx_os_init(ngx_log_t *log)
 {
