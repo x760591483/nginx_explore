@@ -30,7 +30,7 @@ ngx_os_io_t ngx_os_io = {
     0
 };
 
-
+// 进行系统相关初始化工作
 ngx_int_t
 ngx_os_init(ngx_log_t *log)
 {
@@ -41,25 +41,22 @@ ngx_os_init(ngx_log_t *log)
 #endif
 
 #if (NGX_HAVE_OS_SPECIFIC_INIT)
-// OS特定的初始化   初始化linux内核版本号
     if (ngx_os_specific_init(log) != NGX_OK) {
         return NGX_ERROR;
     }
 #endif
-// 初始化 proctitle 内存空间
+
     if (ngx_init_setproctitle(log) != NGX_OK) {
         return NGX_ERROR;
     }
-// 系统页面默认大小 page size
+    // 调用unistd.h中getpagesize函数来获取内存分页大小, 单位为Byte
     ngx_pagesize = getpagesize();
-// nginx缓存尺寸的设置 cacheline size
     ngx_cacheline_size = NGX_CPU_CACHE_LINE;
 
     for (n = ngx_pagesize; n >>= 1; ngx_pagesize_shift++) { /* void */ }
 
 #if (NGX_HAVE_SC_NPROCESSORS_ONLN)
     if (ngx_ncpu == 0) {
-        // 获取 cpu核数
         ngx_ncpu = sysconf(_SC_NPROCESSORS_ONLN);
     }
 #endif
@@ -74,9 +71,9 @@ ngx_os_init(ngx_log_t *log)
         ngx_cacheline_size = size;
     }
 #endif
-// 该函数实际上也设置 ngx_cacheline_size 值
+
     ngx_cpuinfo();
-// 获取资源限制数据  为后面 ngx_max_sockets做初始化
+
     if (getrlimit(RLIMIT_NOFILE, &rlmt) == -1) {
         ngx_log_error(NGX_LOG_ALERT, log, errno,
                       "getrlimit(RLIMIT_NOFILE) failed");
@@ -92,7 +89,6 @@ ngx_os_init(ngx_log_t *log)
 #endif
 
     tp = ngx_timeofday();
-// 设置random函数种子
     srandom(((unsigned) ngx_pid << 16) ^ tp->sec ^ tp->msec);
 
     return NGX_OK;

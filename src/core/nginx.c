@@ -275,7 +275,7 @@ main(int argc, char *const *argv)
     /*
      * ngx_crc32_table_init() requires ngx_cacheline_size set in ngx_os_init()
      */
-
+    // 循环冗余校验的表
     if (ngx_crc32_table_init() != NGX_OK) {
         return 1;
     }
@@ -285,7 +285,7 @@ main(int argc, char *const *argv)
      */
 
     ngx_slab_sizes_init();
-
+// 主要是读取环境变量"NGINX" 将其中各个用分隔符":"or";"的数值  保存在ngx_cycel->listening数组中
     if (ngx_add_inherited_sockets(&init_cycle) != NGX_OK) {
         return 1;
     }
@@ -460,13 +460,15 @@ ngx_show_version_info(void)
 }
 
 
+//主要是读取环境变量"NGINX" 将其中各个用分隔符":"or";"的数值，
+//保存在ngx_cycel->listening数组中
 static ngx_int_t
 ngx_add_inherited_sockets(ngx_cycle_t *cycle)
 {
     u_char           *p, *v, *inherited;
     ngx_int_t         s;
     ngx_listening_t  *ls;
-
+    // 获取环境变量  NGINX_VAR 宏定义  值为 NGINX
     inherited = (u_char *) getenv(NGINX_VAR);
 
     if (inherited == NULL) {
@@ -475,16 +477,17 @@ ngx_add_inherited_sockets(ngx_cycle_t *cycle)
 
     ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0,
                   "using inherited sockets from \"%s\"", inherited);
-
+    // 初始化cycle->listening数组  
     if (ngx_array_init(&cycle->listening, cycle->pool, 10,
                        sizeof(ngx_listening_t))
         != NGX_OK)
     {
         return NGX_ERROR;
     }
-
+    // 遍历环境变量  以 :  ;分开
     for (p = inherited, v = p; *p; p++) {
         if (*p == ':' || *p == ';') {
+            // 转成10进制
             s = ngx_atoi(v, p - v);
             if (s == NGX_ERROR) {
                 ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
@@ -495,14 +498,14 @@ ngx_add_inherited_sockets(ngx_cycle_t *cycle)
             }
 
             v = p + 1;
-
+            // 返回新分配的数组指针
             ls = ngx_array_push(&cycle->listening);
             if (ls == NULL) {
                 return NGX_ERROR;
             }
-
+            // 初始化内存空间
             ngx_memzero(ls, sizeof(ngx_listening_t));
-
+            // 保存socket文件描述符到数组
             ls->fd = (ngx_socket_t) s;
             ls->inherited = 1;
         }
@@ -514,8 +517,8 @@ ngx_add_inherited_sockets(ngx_cycle_t *cycle)
                       " environment variable, ignoring", v);
     }
 
-    ngx_inherited = 1;
-
+    ngx_inherited = 1; // 表示已经得到要继承的socket
+    // 主要是对数组中的每一个元素进行判断是否有效，然后进行初始化操作
     return ngx_set_inherited_sockets(cycle);
 }
 
