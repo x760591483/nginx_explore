@@ -38,6 +38,7 @@ static ngx_connection_t  dumb;
 ngx_cycle_t *
 ngx_init_cycle(ngx_cycle_t *old_cycle)
 {
+    // 第一次调用  old_cycle中只含有log信息和参数信息
     void                *rv;
     char               **senv;
     ngx_uint_t           i, n;
@@ -53,19 +54,19 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     ngx_core_conf_t     *ccf, *old_ccf;
     ngx_core_module_t   *module;
     char                 hostname[NGX_MAXHOSTNAMELEN];
-
+    // 设置系统环境变量的putenv("TZ=UTC")
     ngx_timezone_update();
 
     /* force localtime update with a new timezone */
-
+    //调用ngx_timezone_update()更新时区，调用ngx_time_update()更新时间
     tp = ngx_timeofday();
     tp->sec = 0;
 
     ngx_time_update();
 
-
+    //这里的log还是main函数中临时log
     log = old_cycle->log;
-
+    //创建内存池，此处创建大小为
     pool = ngx_create_pool(NGX_CYCLE_POOL_SIZE, log);
     if (pool == NULL) {
         return NULL;
@@ -81,7 +82,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     cycle->pool = pool;
     cycle->log = log;
     cycle->old_cycle = old_cycle;
-
+    //配置文件前置路径参数只有在main函数中由，所以在这里通过old_cycle出入进来
     cycle->conf_prefix.len = old_cycle->conf_prefix.len;
     cycle->conf_prefix.data = ngx_pstrdup(pool, &old_cycle->conf_prefix);
     if (cycle->conf_prefix.data == NULL) {
@@ -104,7 +105,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     }
     ngx_cpystrn(cycle->error_log.data, old_cycle->error_log.data,
                 old_cycle->error_log.len + 1);
-
+    //配置文件也是从old_cycle中传入
     cycle->conf_file.len = old_cycle->conf_file.len;
     cycle->conf_file.data = ngx_pnalloc(pool, old_cycle->conf_file.len + 1);
     if (cycle->conf_file.data == NULL) {
@@ -113,7 +114,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     }
     ngx_cpystrn(cycle->conf_file.data, old_cycle->conf_file.data,
                 old_cycle->conf_file.len + 1);
-
+    //这里将old param赋值为cycle,后面要用到
     cycle->conf_param.len = old_cycle->conf_param.len;
     cycle->conf_param.data = ngx_pstrdup(pool, &old_cycle->conf_param);
     if (cycle->conf_param.data == NULL) {
@@ -123,7 +124,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
 
 
     n = old_cycle->paths.nelts ? old_cycle->paths.nelts : 10;
-
+    //初始化一个大小为n，可动态扩展的数组，cycle的paths用来存储的是路径，比如配置很多配置文件的路径
     if (ngx_array_init(&cycle->paths, pool, n, sizeof(ngx_path_t *))
         != NGX_OK)
     {
@@ -140,7 +141,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         ngx_destroy_pool(pool);
         return NULL;
     }
-
+    //红黑树，平衡二叉树一种，用来坐二分搜索用的
     ngx_rbtree_init(&cycle->config_dump_rbtree, &cycle->config_dump_sentinel,
                     ngx_str_rbtree_insert_value);
 
@@ -153,7 +154,8 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     } else {
         n = 20;
     }
-
+    //这里面的文件路径是感兴趣的模块添加进去的，然后在这里后面打开
+    //打开文件的list
     if (ngx_list_init(&cycle->open_files, pool, n, sizeof(ngx_open_file_t))
         != NGX_OK)
     {
@@ -172,7 +174,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     } else {
         n = 1;
     }
-
+    //共享内存的初始化
     if (ngx_list_init(&cycle->shared_memory, pool, n, sizeof(ngx_shm_zone_t))
         != NGX_OK)
     {
@@ -181,7 +183,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     }
 
     n = old_cycle->listening.nelts ? old_cycle->listening.nelts : 10;
-
+    //连接监听的数组,具体结构附录图
     if (ngx_array_init(&cycle->listening, pool, n, sizeof(ngx_listening_t))
         != NGX_OK)
     {
@@ -191,10 +193,10 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
 
     ngx_memzero(cycle->listening.elts, n * sizeof(ngx_listening_t));
 
-
+    //队列初始化，这个结构体比较简单就两个属性
     ngx_queue_init(&cycle->reusable_connections_queue);
 
-
+    //给每个模块都分配一个配置属性指针，后面nginx.conf以及其他配置文件中的配置会放到这里
     cycle->conf_ctx = ngx_pcalloc(pool, ngx_max_module * sizeof(void *));
     if (cycle->conf_ctx == NULL) {
         ngx_destroy_pool(pool);
@@ -229,11 +231,11 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
 
 
     for (i = 0; cycle->modules[i]; i++) {
-        if (cycle->modules[i]->type != NGX_CORE_MODULE) {
+        if (cycle->modules[i]->type != NGX_CORE_MODULE) {//非核心模块不处理
             continue;
         }
 
-        module = cycle->modules[i]->ctx;
+        module = cycle->modules[i]->ctx;//模块的上下文
 
         if (module->create_conf) {
             rv = module->create_conf(cycle);
@@ -274,7 +276,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
 #if 0
     log->log_level = NGX_LOG_DEBUG_ALL;
 #endif
-
+    //第一个if解析nginx命令行参数’-g’加入的配置。第二个if解析nginx配置文件
     if (ngx_conf_param(&conf) != NGX_CONF_OK) {
         environ = senv;
         ngx_destroy_cycle_pools(&conf);

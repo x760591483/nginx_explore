@@ -289,11 +289,12 @@ main(int argc, char *const *argv)
     if (ngx_add_inherited_sockets(&init_cycle) != NGX_OK) {
         return 1;
     }
-
+    // ngx_modules[i]->name = ngx_module_names[i] 全局变量值的赋值
     if (ngx_preinit_modules() != NGX_OK) {
         return 1;
     }
-
+    // 该函数会负责初始化ngx_cycle_t的数据结构，解析配置文件，加载所有模块，代开
+    // 监听端口，初始化进程间通信的方式等
     cycle = ngx_init_cycle(&init_cycle);
     if (cycle == NULL) {
         if (ngx_test_config) {

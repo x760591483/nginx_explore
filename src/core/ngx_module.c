@@ -26,7 +26,7 @@ ngx_int_t
 ngx_preinit_modules(void)
 {
     ngx_uint_t  i;
-
+    // ngx_modules 静态全局数组
     for (i = 0; ngx_modules[i]; i++) {
         ngx_modules[i]->index = i;
         ngx_modules[i]->name = ngx_module_names[i];
@@ -46,17 +46,17 @@ ngx_cycle_modules(ngx_cycle_t *cycle)
      * create a list of modules to be used for this cycle,
      * copy static modules to it
      */
-
+    //申请内存空间，存放module的结构体
     cycle->modules = ngx_pcalloc(cycle->pool, (ngx_max_module + 1)
                                               * sizeof(ngx_module_t *));
     if (cycle->modules == NULL) {
         return NGX_ERROR;
     }
-
+    //把全局静态变量的内存信息拷贝过来，这个ngx_modules是在编译的时候确定好的，即你安装的时候指定需要使用的扩展，具体可以查看上一章的内容
     ngx_memcpy(cycle->modules, ngx_modules,
                ngx_modules_n * sizeof(ngx_module_t *));
 
-    cycle->modules_n = ngx_modules_n;
+    cycle->modules_n = ngx_modules_n;//赋值扩展的数量
 
     return NGX_OK;
 }
