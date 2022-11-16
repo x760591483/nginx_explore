@@ -139,7 +139,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         ngx_destroy_pool(pool);
         return NULL;
     }
-
+    // 初始化空间
     ngx_memzero(cycle->paths.elts, n * sizeof(ngx_path_t *));
 
 
@@ -177,7 +177,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     }
 
 
-    if (old_cycle->shared_memory.part.nelts) {
+    if (old_cycle->shared_memory.part.nelts) { // 统计个数
         n = old_cycle->shared_memory.part.nelts;
         for (part = old_cycle->shared_memory.part.next; part; part = part->next)
         {
@@ -214,7 +214,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     //给每个模块都分配一个配置属性指针，后面nginx.conf以及其他配置文件中的配置会放到这里
     // conf_ctx 保存着所有模块存储配置项的结构体的指针，它首先是一个数组，每个数组成员
     //   又是一个指针，这个指针指向另一个存储着指针的数组。该数组的最大值 ngx_max_module
-    //   在 ngx_preinit_modules 函数中确定 
+    //   在 ngx_preinit_modules 函数中确定  4维指针
     cycle->conf_ctx = ngx_pcalloc(pool, ngx_max_module * sizeof(void *));
     if (cycle->conf_ctx == NULL) {
         ngx_destroy_pool(pool);
@@ -242,6 +242,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     ngx_strlow(cycle->hostname.data, (u_char *) hostname, cycle->hostname.len);
 
     // 将全局变量 ngx_modules 数组所包含的所有模块都复制到 cycle->modules 中   该 modules 数组的元素个数为 cycle->modules_n
+    // conf_ctx指针中 modules 二级指针指向 ngx_modules 全局变量
     if (ngx_cycle_modules(cycle) != NGX_OK) {
         ngx_destroy_pool(pool);
         return NULL;

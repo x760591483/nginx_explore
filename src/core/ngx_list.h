@@ -36,16 +36,16 @@ ngx_list_t *ngx_list_create(ngx_pool_t *pool, ngx_uint_t n, size_t size);
 static ngx_inline ngx_int_t
 ngx_list_init(ngx_list_t *list, ngx_pool_t *pool, ngx_uint_t n, size_t size)
 {
-    list->part.elts = ngx_palloc(pool, n * size);
+    list->part.elts = ngx_palloc(pool, n * size); // 第一个链表中的存储位置
     if (list->part.elts == NULL) {
         return NGX_ERROR;
     }
 
-    list->part.nelts = 0;
-    list->part.next = NULL;
-    list->last = &list->part;
-    list->size = size;
-    list->nalloc = n;
+    list->part.nelts = 0; // 第一链表中已使用个数
+    list->part.next = NULL; // 第一链表中下一个链表位置
+    list->last = &list->part; // 最后链表位置
+    list->size = size; // 单个元素占用空间大小
+    list->nalloc = n; // 每个单元链表数组容量
     list->pool = pool;
 
     return NGX_OK;

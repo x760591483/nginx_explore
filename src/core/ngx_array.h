@@ -36,12 +36,12 @@ ngx_array_init(ngx_array_t *array, ngx_pool_t *pool, ngx_uint_t n, size_t size)
      * that "array->nelts" may be used without having been initialized
      */
 
-    array->nelts = 0;
-    array->size = size;
-    array->nalloc = n;
-    array->pool = pool;
+    array->nelts = 0; // 数组实际存储元素个数 
+    array->size = size; // 单个元素所占空间大小 
+    array->nalloc = n; // 数据目前最大容量
+    array->pool = pool;// 关联的内存池
 
-    array->elts = ngx_palloc(pool, n * size);
+    array->elts = ngx_palloc(pool, n * size);// 存放位置
     if (array->elts == NULL) {
         return NGX_ERROR;
     }
