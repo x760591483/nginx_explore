@@ -25,10 +25,11 @@
 typedef struct ngx_shm_zone_s  ngx_shm_zone_t;
 
 typedef ngx_int_t (*ngx_shm_zone_init_pt) (ngx_shm_zone_t *zone, void *data);
-
+// 一块完整的内存以结构体ngx_shm_zone_s封装.其中包括是共享内存的名字(shm_zone[i].shm.name),大小(shm_zone[i].shm.size),标签(shm_zone[i].tag),      ngx_shm_zone_init_pt      init;  (初始化共享内存时的回调函数)
+// name字段主要用作共享内存的唯一标识，它能让nginx知道我想使用哪个共享内存，但它没法让nginx区分我到底是想新创建一个共享内存，还是使用那个已存在的旧的共享内存。举个例子，模块A创建了共享内存sa，模块A或另外一个模块B再以同样的名称sa去获取共享内存，那么此时nginx是返回模块A已创建的那个共享内存sa给模块A/模块B，还是直接以共享内存名重复提示模块A/模块B出错呢？不管nginx采用哪种做法都有另外一种情况出错，所以新增一个tag字段做冲突标识，该字段一般也就指向当前模块的ngx_module_t变量即可。这样在上面的例子中，通过tag字段的帮助，如果模块A/模块B再以同样的名称sa去获取模块A已创建的共享内存sa，模块A将获得它之前创建的共享内存的引用（因为模块A前后两次请求的tag相同），而模块B则将获得共享内存已做它用的错误提示（因为模块B请求的tag与之前模块A请求时的tag不同
 struct ngx_shm_zone_s {
     void                     *data;
-    ngx_shm_t                 shm;
+    ngx_shm_t                 shm; // 共享内存
     ngx_shm_zone_init_pt      init;
     void                     *tag;
     void                     *sync;

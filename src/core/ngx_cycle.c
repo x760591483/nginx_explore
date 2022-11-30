@@ -258,7 +258,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         module = cycle->modules[i]->ctx;//模块的上下文
 
         if (module->create_conf) {
-            // 调用核心模块的 create_conf 函数，创建实际的配置信息存储空间 并初始化该配置信息结构体
+            // 调用核心模块的 create_conf 函数，创建实际的配置信息存储空间 并初始化该配置信息结构体  第0个是ngx_core_module_create_conf函数  就是创建ngx_core_conf_t结构体并初始化了
             rv = module->create_conf(cycle);
             if (rv == NULL) {
                 ngx_destroy_pool(pool);
@@ -340,7 +340,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         }
     }
 
-    if (ngx_process == NGX_PROCESS_SIGNALLER) {
+    if (ngx_process == NGX_PROCESS_SIGNALLER) {// 重启时直接返回
         return cycle;
     }
     // 从cycle->conf_ctx数组中取出ngx_core_module的配置信息结构体
@@ -442,16 +442,16 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     /* create shared memory */
     // 该 shared_memory 是由配置有启用共享内存的模块来添加的
     part = &cycle->shared_memory.part;
-    shm_zone = part->elts;
+    shm_zone = part->elts; // ngx_shm_zone_t
     // 该 for 循环是检测新的将要创建的共享内存是否与旧的共享内存 有冲突
     for (i = 0; /* void */ ; i++) {
 
-        if (i >= part->nelts) {
+        if (i >= part->nelts) {// 循环遍历ngx_list_t结构体
             if (part->next == NULL) {
                 break;
             }
             part = part->next;
-            shm_zone = part->elts;
+            shm_zone = part->elts;// 实际存储内存位置
             i = 0;
         }
 
@@ -463,7 +463,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         }
 
         shm_zone[i].shm.log = cycle->log;
-
+        // 旧的共享空间
         opart = &old_cycle->shared_memory.part;
         oshm_zone = opart->elts;
 
@@ -477,11 +477,11 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
                 oshm_zone = opart->elts;
                 n = 0;
             }
-
+            // 名字长度一样
             if (shm_zone[i].shm.name.len != oshm_zone[n].shm.name.len) {
                 continue;
             }
-
+            // 名字一样
             if (ngx_strncmp(shm_zone[i].shm.name.data,
                             oshm_zone[n].shm.name.data,
                             shm_zone[i].shm.name.len)
@@ -489,7 +489,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
             {
                 continue;
             }
-
+            // 将旧的转移过来
             if (shm_zone[i].tag == oshm_zone[n].tag
                 && shm_zone[i].shm.size == oshm_zone[n].shm.size
                 && !shm_zone[i].noreuse)
@@ -510,7 +510,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
 
             break;
         }
-        //  mmap 映射一块共享内存
+        //  mmap 映射开辟一块共享内存
         if (ngx_shm_alloc(&shm_zone[i].shm) != NGX_OK) {
             goto failed;
         }
