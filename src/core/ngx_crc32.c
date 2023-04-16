@@ -106,7 +106,7 @@ ngx_int_t
 ngx_crc32_table_init(void) // 循环冗余校验的表
 {
     void  *p;
-
+    // ngx_cacheline_size 缓存行的大小
     if (((uintptr_t) ngx_crc32_table_short
           & ~((uintptr_t) ngx_cacheline_size - 1))
         == (uintptr_t) ngx_crc32_table_short)
@@ -118,7 +118,7 @@ ngx_crc32_table_init(void) // 循环冗余校验的表
     if (p == NULL) {
         return NGX_ERROR;
     }
-
+    // 返回的地址就是对齐后的地址，这也导致部分申请的内存浪费了才完成的对齐
     p = ngx_align_ptr(p, ngx_cacheline_size);
 
     ngx_memcpy(p, ngx_crc32_table16, 16 * sizeof(uint32_t));

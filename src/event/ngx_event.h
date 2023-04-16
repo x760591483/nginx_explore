@@ -166,6 +166,19 @@ struct ngx_event_aio_s {
 
 #endif
 
+/**
+add: 添加一个事件到事件驱动机制中，通常用于监听socket上的读写事件。
+del: 删除一个事件从事件驱动机制中，通常用于取消监听socket上的读写事件。
+enable: 启用一个已经添加过的事件，通常用于恢复监听socket上的读写事件。
+disable: 禁用一个已经添加过的事件，通常用于暂停监听socket上的读写事件。
+add_conn: 添加一个连接到事件驱动机制中，通常用于监听连接上所有相关的socket。
+del_conn: 删除一个连接从事件驱动机制中，通常用于取消监听连接上所有相关的socket。
+notify: 通知一个连接有新的数据可读或可写，通常用于在多进程模式下唤醒其他进程处理连接。
+process_events: 处理所有已经就绪的事件，通常是调用底层事件机制（如epoll、kqueue等）来获取就绪的文件描述符，并执行相应的回调函数。
+init: 初始化底层事件机制，并分配必要的内存空间和数据结构。
+done: 释放底层事件机制占用的内存空间和数据结构。
+ *
+ */
 
 typedef struct {
     ngx_int_t  (*add)(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);

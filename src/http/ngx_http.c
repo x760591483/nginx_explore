@@ -122,7 +122,16 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     char                        *rv;
     ngx_uint_t                   mi, m, s;
     ngx_conf_t                   pcf;
+    // ngx_module_s->ctx指向 ngx_http_module_t
+    // {
+    //	8个阶段函数 用于解析main src loc参数配置等
+    // }
     ngx_http_module_t           *module;
+    //ngx_http_conf_ctx_t {
+    // void** main_conf
+    // void** srv_conf
+    // void** loc_conf
+    //}
     ngx_http_conf_ctx_t         *ctx;
     ngx_http_core_loc_conf_t    *clcf;
     ngx_http_core_srv_conf_t   **cscfp;
@@ -133,7 +142,7 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     /* the main http context */
-
+    // ngx_http_conf_ctx_t 看上
     ctx = ngx_pcalloc(cf->pool, sizeof(ngx_http_conf_ctx_t));
     if (ctx == NULL) {
         return NGX_CONF_ERROR;
@@ -206,6 +215,8 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         }
 
         if (module->create_loc_conf) {
+	    // 模型调用自己的create_loc_conf方法
+	    //ngx_http_conf_ctx_s->**loc_conf
             ctx->loc_conf[mi] = module->create_loc_conf(cf);
             if (ctx->loc_conf[mi] == NULL) {
                 return NGX_CONF_ERROR;

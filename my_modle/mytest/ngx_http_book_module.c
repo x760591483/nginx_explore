@@ -235,6 +235,7 @@ static void *ngx_http_book_create_loc_conf(ngx_conf_t *cf)
         }
         // 重置结构体中参数
         //ngx_str_null(&local_conf->book_string);
+	// 必须得重置
         local_conf->iset = NGX_CONF_UNSET;
         // 返回结构体指针
         return local_conf;
@@ -260,111 +261,6 @@ ngx_http_book_init(ngx_conf_t *cf) // ngx_conf_t 是啥
         return NGX_OK;
 }
 
-// 备注
-/**
- struct ngx_conf_s {
-    char                 *name;
-    ngx_array_t          *args;
-
-    ngx_cycle_t          *cycle;
-    ngx_pool_t           *pool;
-    ngx_pool_t           *temp_pool;
-    ngx_conf_file_t      *conf_file;
-    ngx_log_t            *log;
-
-    void                 *ctx;
-    ngx_uint_t            module_type;
-    ngx_uint_t            cmd_type;
-
-    ngx_conf_handler_pt   handler;
-    char                 *handler_conf;
-};
-
-#define ngx_http_conf_get_module_main_conf(cf, module)                        \
-    ((ngx_http_conf_ctx_t *) cf->ctx)->main_conf[module.ctx_index]
-#define ngx_http_conf_get_module_srv_conf(cf, module)                         \
-    ((ngx_http_conf_ctx_t *) cf->ctx)->srv_conf[module.ctx_index]
-#define ngx_http_conf_get_module_loc_conf(cf, module)                         \
-    ((ngx_http_conf_ctx_t *) cf->ctx)->loc_
-
-
-struct ngx_array_s { // 动态数组
-    void        *elts; // 数组首地址
-    ngx_uint_t   nelts; // 数组中已经存储的个数
-    size_t       size; // 单个元素占用内存大小
-    ngx_uint_t   nalloc; // 元素总个数
-    ngx_pool_t  *pool; // 内存池
-};
-
-void *
-ngx_array_push(ngx_array_t *a)
-{
-    void        *elt, *new;
-    size_t       size;
-    ngx_pool_t  *p;
-
-    if (a->nelts == a->nalloc) {// 数组已经用完空间
-        size = a->size * a->nalloc;
-        p = a->pool;
-        if ((u_char *) a->elts + size == p->d.last
-            && p->d.last + a->size <= p->d.end)
-        {
-           
-            // the array allocation is the last in the pool
-            // and there is space for new allocation
-             
-
-            p->d.last += a->size;
-            a->nalloc++;
-
-        } else {
-            // allocate a new array 
-
-            new = ngx_palloc(p, 2 * size);
-            if (new == NULL) {
-                return NULL;
-            }
-
-            ngx_memcpy(new, a->elts, size);
-            a->elts = new;
-            a->nalloc *= 2;
-        }
-    }
-
-    elt = (u_char *) a->elts + a->size * a->nelts;
-    a->nelts++;
-
-    return elt;
-}
-
-typedef struct {
-    ngx_array_t                servers;         //ngx_http_core_srv_conf_t 
-
-    ngx_http_phase_engine_t    phase_engine;
-
-    ngx_hash_t                 headers_in_hash;
-
-    ngx_hash_t                 variables_hash;
-
-    ngx_array_t                variables;       //ngx_http_variable_t 
-    ngx_uint_t                 ncaptures;
-
-    ngx_uint_t                 server_names_hash_max_size;
-    ngx_uint_t                 server_names_hash_bucket_size;
-
-    ngx_uint_t                 variables_hash_max_size;
-    ngx_uint_t                 variables_hash_bucket_size;
-
-    ngx_hash_keys_arrays_t    *variables_keys;
-
-    ngx_array_t               *ports;
-
-    ngx_uint_t                 try_files;       //unsigned  try_files:1 
-
-    ngx_http_phase_t           phases[NGX_HTTP_LOG_PHASE + 1];
-} ngx_http_core_main_conf_t;
-
-*/
 
 
 

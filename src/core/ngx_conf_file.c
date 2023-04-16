@@ -66,29 +66,29 @@ ngx_conf_param(ngx_conf_t *cf)
     ngx_str_t        *param;
     ngx_buf_t         b;
     ngx_conf_file_t   conf_file;
-
+    // 为空直接返回
     param = &cf->cycle->conf_param;
 
     if (param->len == 0) {
         return NGX_CONF_OK;
     }
-
+    // 记录文件的内容
     ngx_memzero(&conf_file, sizeof(ngx_conf_file_t));
-
+    // 链表的某节点实际内容
     ngx_memzero(&b, sizeof(ngx_buf_t));
 
     b.start = param->data;
     b.pos = param->data;
     b.last = param->data + param->len;
     b.end = b.last;
-    b.temporary = 1;
+    b.temporary = 1;// 为1时内存可修改
 
     conf_file.file.fd = NGX_INVALID_FILE;
     conf_file.file.name.data = NULL;
     conf_file.line = 0;
 
-    cf->conf_file = &conf_file;
-    cf->conf_file->buffer = &b;
+    cf->conf_file = &conf_file;// 文件为空
+    cf->conf_file->buffer = &b;// 
 
     rv = ngx_conf_parse(cf, NULL);
 
@@ -153,7 +153,7 @@ ngx_conf_add_dump(ngx_conf_t *cf, ngx_str_t *filename)
     return NGX_OK;
 }
 
-
+// 解析的上下文结构体
 char *
 ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
 {
@@ -163,9 +163,9 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
     ngx_buf_t         buf;
     ngx_conf_file_t  *prev, conf_file;
     enum {
-        parse_file = 0,
-        parse_block,
-        parse_param
+        parse_file = 0, // 表示解析整个配置文件
+        parse_block, // 表示解析配置文件中的一个块 如server location
+        parse_param // 表示解析文件中的一个参数 如listen root等
     } type;
 
 #if (NGX_SUPPRESS_WARN)
@@ -176,7 +176,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
     if (filename) {
 
         /* open configuration file */
-
+	// 打开配置文件
         fd = ngx_open_file(filename->data, NGX_FILE_RDONLY, NGX_FILE_OPEN, 0);
 
         if (fd == NGX_INVALID_FILE) {
@@ -185,28 +185,28 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
                                filename->data);
             return NGX_CONF_ERROR;
         }
-
+	// cf->conf_file 为ngx_conf_file_t结构体  配置文件的结构体
         prev = cf->conf_file;
-
+	// 保存之前的在prev  conf_file 当前还是为空白 为局部变量
         cf->conf_file = &conf_file;
-
+	// 获取文件信息 并记录
         if (ngx_fd_info(fd, &cf->conf_file->file.info) == NGX_FILE_ERROR) {
             ngx_log_error(NGX_LOG_EMERG, cf->log, ngx_errno,
                           ngx_fd_info_n " \"%s\" failed", filename->data);
         }
-
+	// 配置文件缓存区指针指向当前局部变量buf  ngx_buf_t结构体 
         cf->conf_file->buffer = &buf;
 
         buf.start = ngx_alloc(NGX_CONF_BUFFER, cf->log);
         if (buf.start == NULL) {
             goto failed;
         }
-
+	// 初始化缓存区  将缓存区的起始位置 结束位置 当前位置都指向缓存区的起始位置，并设置缓冲区为临时缓冲区
         buf.pos = buf.start;
         buf.last = buf.start;
         buf.end = buf.last + NGX_CONF_BUFFER;
         buf.temporary = 1;
-
+	// 初始化配置文件结构体  
         cf->conf_file->file.fd = fd;
         cf->conf_file->file.name.len = filename->len;
         cf->conf_file->file.name.data = filename->data;
@@ -215,13 +215,13 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
         cf->conf_file->line = 1;
 
         type = parse_file;
-
+	// 判断是否需要将配置文件信息输出到日志中  ngx_dump_config控制是否将配置文件信息输出到日志中
         if (ngx_dump_config
 #if (NGX_DEBUG)
             || 1
 #endif
            )
-        {
+        {// 将配置文件信息添加到日志中 失败则跳转
             if (ngx_conf_add_dump(cf, filename) != NGX_OK) {
                 goto failed;
             }
@@ -231,15 +231,17 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
         }
 
     } else if (cf->conf_file->file.fd != NGX_INVALID_FILE) {
-
+	// 解析块
         type = parse_block;
 
     } else {
+	// 参数
         type = parse_param;
     }
 
 
     for ( ;; ) {
+	// 读取配置文件函数 读取一个token 
         rc = ngx_conf_read_token(cf);
 
         /*
@@ -315,7 +317,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
             goto failed;
         }
 
-
+	// 调用自定义的 举例ngx_http_book_create_loc_conf  ->463
         rc = ngx_conf_handler(cf, rc);
 
         if (rc == NGX_ERROR) {
@@ -355,35 +357,40 @@ done:
 static ngx_int_t
 ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
 {
+    // last记录状态
     char           *rv;
     void           *conf, **confp;
     ngx_uint_t      i, found;
     ngx_str_t      *name;
     ngx_command_t  *cmd;
-
+    // 将指令的名称保存到变量中
     name = cf->args->elts;
 
     found = 0;
-
+    // 遍历nginx中所有的模块  查找指令处理的函数
     for (i = 0; cf->cycle->modules[i]; i++) {
-
+	// 获取当前模块的指令列表
+	// ngx_conf_s->ngx_cycle_s*->ngx_module_t**->ngx_command_s {
+	// 包含成员：
+	// name  type   conf   offset   post
+	// }
         cmd = cf->cycle->modules[i]->commands;
-        if (cmd == NULL) {
+        if (cmd == NULL) {//没有则跳过
             continue;
         }
-
+	// 遍历当前模块的指令列表  查找指令的处理函数
         for ( /* void */ ; cmd->name.len; cmd++) {
 
             if (name->len != cmd->name.len) {
                 continue;
             }
-
+	    // 名称不一样跳过
             if (ngx_strcmp(name->data, cmd->name.data) != 0) {
                 continue;
             }
-
+	    // 找到指令处理函数 设置标记
             found = 1;
-
+	    // 不是当前指令所在的模块类型 则跳过当前指令
             if (cf->cycle->modules[i]->type != NGX_CONF_MODULE
                 && cf->cycle->modules[i]->type != cf->module_type)
             {
@@ -391,18 +398,18 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
             }
 
             /* is the directive's location right ? */
-
+	    // 如果当前指令类型与当前配置上下文类型不匹配 跳过
             if (!(cmd->type & cf->cmd_type)) {
                 continue;
             }
-
+	    // 如果当前指令不是块指令  并且上一个指令没有以分号结尾 跳过
             if (!(cmd->type & NGX_CONF_BLOCK) && last != NGX_OK) {
                 ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                   "directive \"%s\" is not terminated by \";\"",
                                   name->data);
                 return NGX_ERROR;
             }
-
+	    // 如果当前指令是块指令，并且上一个指令不是块开始指令，则输出错误信息并返回NGXERROR
             if ((cmd->type & NGX_CONF_BLOCK) && last != NGX_CONF_BLOCK_START) {
                 ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                    "directive \"%s\" has no opening \"{\"",
@@ -411,15 +418,15 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
             }
 
             /* is the directive's argument count right ? */
-
+	    // 如果当前指令的类型不是任意类型  则需要检查指令的参数是否正确
             if (!(cmd->type & NGX_CONF_ANY)) {
-
+		// 如果当前指令是布尔类型，则需要检查参数个数是否为2
                 if (cmd->type & NGX_CONF_FLAG) {
 
                     if (cf->args->nelts != 2) {
                         goto invalid;
                     }
-
+		// 如果当前指令则需要检查参数个数是否小于2
                 } else if (cmd->type & NGX_CONF_1MORE) {
 
                     if (cf->args->nelts < 2) {
@@ -431,11 +438,11 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
                     if (cf->args->nelts < 3) {
                         goto invalid;
                     }
-
+		// 如果当前指令的参数个数超过了最大值，则输出错误信息并返回
                 } else if (cf->args->nelts > NGX_CONF_MAX_ARGS) {
 
                     goto invalid;
-
+		// 当前指令的参数个数不符合指令类型的要求
                 } else if (!(cmd->type & argument_number[cf->args->nelts - 1]))
                 {
                     goto invalid;
@@ -445,17 +452,19 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
             /* set up the directive's configuration context */
 
             conf = NULL;
-
+	    // 判断当前指令是否是在 http、server、location等块内配置，即是否为 NGX_DIRECT_CONF 类型的指令
             if (cmd->type & NGX_DIRECT_CONF) {
+		// 如果当前指令是在块内配置，则从配置解析器的上下文 cf->ctx 中获取模块指针数组，再根据当前模块的索引 cf->cycle->modules[i]->index 获取该模块的配置结构体指针 conf
+		// cf->ctx == ngx_cycle_s->conf_ctx****
                 conf = ((void **) cf->ctx)[cf->cycle->modules[i]->index];
-
+	    // 
             } else if (cmd->type & NGX_MAIN_CONF) {
                 conf = &(((void **) cf->ctx)[cf->cycle->modules[i]->index]);
 
-            } else if (cf->ctx) {
+            } else if (cf->ctx) {// 如果当前指令不是在块内或全局配置块内，判断是否存在上下文
                 confp = *(void **) ((char *) cf->ctx + cmd->conf);
 
-                if (confp) {
+                if (confp) {// 如果 confp 指针不为空，则获取该模块在 confp 数组中的配置结构体指针
                     conf = confp[cf->cycle->modules[i]->ctx_index];
                 }
             }

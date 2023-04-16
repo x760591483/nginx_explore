@@ -96,10 +96,10 @@ struct ngx_open_file_s {
 
 
 typedef struct {
-    ngx_file_t            file;
-    ngx_buf_t            *buffer;
+    ngx_file_t            file;// 文件的属性
+    ngx_buf_t            *buffer;// 文件内容
     ngx_buf_t            *dump;
-    ngx_uint_t            line;
+    ngx_uint_t            line;// 文件行数
 } ngx_conf_file_t;
 
 
@@ -114,21 +114,25 @@ typedef char *(*ngx_conf_handler_pt)(ngx_conf_t *cf,
 
 
 struct ngx_conf_s {
+    // 存放当前解析到的指令
     char                 *name;
+    // 指令的所有的参数
     ngx_array_t          *args;
 
     ngx_cycle_t          *cycle;
     ngx_pool_t           *pool;
+    // 用于解析配置文件的临时内存池，解析完成后释放
     ngx_pool_t           *temp_pool;
+    // Nginx配置文件的相关信息
     ngx_conf_file_t      *conf_file;
     ngx_log_t            *log;
 
-    void                 *ctx;
-    ngx_uint_t            module_type;
-    ngx_uint_t            cmd_type;
+    void                 *ctx;// 描述的指令的上下文
+    ngx_uint_t            module_type;// 指令的模块类型
+    ngx_uint_t            cmd_type; // 指令的类型
 
-    ngx_conf_handler_pt   handler;
-    void                 *handler_conf;
+    ngx_conf_handler_pt   handler; // 指令自定义的处理函数
+    void                 *handler_conf; // 自定义处理函数需要的相关配置
 };
 
 

@@ -196,13 +196,14 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
     ngx_uint_t  flags;
     ngx_msec_t  timer, delta;
 
+    // 是否使用了 该指令
     if (ngx_timer_resolution) {
-        timer = NGX_TIMER_INFINITE;
+        timer = NGX_TIMER_INFINITE;// 使用了 不使用定时器
         flags = 0;
 
     } else {
-        timer = ngx_event_find_timer();
-        flags = NGX_UPDATE_TIME;
+        timer = ngx_event_find_timer(); // 找出最小的超时时间
+        flags = NGX_UPDATE_TIME;// 需要更新系统时间
 
 #if (NGX_WIN32)
 
@@ -217,48 +218,48 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
 
     if (ngx_use_accept_mutex) {
         if (ngx_accept_disabled > 0) {
-            ngx_accept_disabled--;
+            ngx_accept_disabled--;// 大于0 减一 表示暂时不接受新连接
 
         } else {
             if (ngx_trylock_accept_mutex(cycle) == NGX_ERROR) {
-                return;
+                return;// 尝试获取锁 失败返回
             }
 
             if (ngx_accept_mutex_held) {
-                flags |= NGX_POST_EVENTS;
+                flags |= NGX_POST_EVENTS;// 获取锁成功  将新接受的连接放入延后的队列中
 
             } else {
                 if (timer == NGX_TIMER_INFINITE
                     || timer > ngx_accept_mutex_delay)
                 {
-                    timer = ngx_accept_mutex_delay;
+                    timer = ngx_accept_mutex_delay;// 如果没有获取锁  则调整timer值为较小值  以便下次获取锁
                 }
             }
         }
     }
 
     if (!ngx_queue_empty(&ngx_posted_next_events)) {
-        ngx_event_move_posted_next(cycle);
-        timer = 0;
+        ngx_event_move_posted_next(cycle);// 如果有延后处理事件出现  将其放到待处理队列
+        timer = 0;// 设置为 0 表示 立即处理这些事件
     }
 
-    delta = ngx_current_msec;
+    delta = ngx_current_msec;// 记录当前系统时间
 
-    (void) ngx_process_events(cycle, timer, flags);
+    (void) ngx_process_events(cycle, timer, flags);// 调用epoll事件
 
-    delta = ngx_current_msec - delta;
+    delta = ngx_current_msec - delta;// 计算处理事件花费的时间
 
     ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
                    "timer delta: %M", delta);
 
-    ngx_event_process_posted(cycle, &ngx_posted_accept_events);
+    ngx_event_process_posted(cycle, &ngx_posted_accept_events);// 处理已经接受但没没有分配的读写事件连接
 
-    if (ngx_accept_mutex_held) {
+    if (ngx_accept_mutex_held) {// 有锁释放锁
         ngx_shmtx_unlock(&ngx_accept_mutex);
     }
-
+    // 检查并触发已经超时的定时器事件
     ngx_event_expire_timers();
-
+    // 处理延后处理队列中的读写事件
     ngx_event_process_posted(cycle, &ngx_posted_events);
 }
 

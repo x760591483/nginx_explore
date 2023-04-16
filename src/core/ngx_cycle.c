@@ -44,7 +44,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     ngx_uint_t           i, n;
     ngx_log_t           *log;
     ngx_time_t          *tp;
-    ngx_conf_t           conf;
+    ngx_conf_t           conf;// 构建该变量
     ngx_pool_t          *pool;
     ngx_cycle_t         *cycle, **old;
     ngx_shm_zone_t      *shm_zone, *oshm_zone;
@@ -275,6 +275,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
 
     ngx_memzero(&conf, sizeof(ngx_conf_t));
     /* STUB: init array ? */
+    // 存放该指令包含的所有参数
     conf.args = ngx_array_create(pool, 10, sizeof(ngx_str_t));
     if (conf.args == NULL) {
         ngx_destroy_pool(pool);
@@ -1120,14 +1121,14 @@ ngx_signal_process(ngx_cycle_t *cycle, char *sig)
     u_char            buf[NGX_INT64_LEN + 2];
 
     ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "signal process started");
-
+    // 获取核心模块的配置项信息  其中包含了配置信心 和pid信息 worker进程数
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
 
     ngx_memzero(&file, sizeof(ngx_file_t));
 
     file.name = ccf->pid;
     file.log = cycle->log;
-
+    // 打开配置文件 即pid配置文件
     file.fd = ngx_open_file(file.name.data, NGX_FILE_RDONLY,
                             NGX_FILE_OPEN, NGX_FILE_DEFAULT_ACCESS);
 
@@ -1136,7 +1137,7 @@ ngx_signal_process(ngx_cycle_t *cycle, char *sig)
                       ngx_open_file_n " \"%s\" failed", file.name.data);
         return 1;
     }
-
+    // 读取文件内容
     n = ngx_read_file(&file, buf, NGX_INT64_LEN + 2, 0);
 
     if (ngx_close_file(file.fd) == NGX_FILE_ERROR) {
@@ -1147,9 +1148,9 @@ ngx_signal_process(ngx_cycle_t *cycle, char *sig)
     if (n == NGX_ERROR) {
         return 1;
     }
-
+    // 去除读取到内容中末尾的回车换行符
     while (n-- && (buf[n] == CR || buf[n] == LF)) { /* void */ }
-
+    // 转成数字
     pid = ngx_atoi(buf, ++n);
 
     if (pid == (ngx_pid_t) NGX_ERROR) {
@@ -1158,7 +1159,7 @@ ngx_signal_process(ngx_cycle_t *cycle, char *sig)
                       n, buf, file.name.data);
         return 1;
     }
-
+    // 向进程发送信号
     return ngx_os_signal_process(cycle, sig, pid);
 
 }

@@ -22,15 +22,16 @@ ngx_event_process_posted(ngx_cycle_t *cycle, ngx_queue_t *posted)
     ngx_event_t  *ev;
 
     while (!ngx_queue_empty(posted)) {
-
+	// 取出队列头部节点
         q = ngx_queue_head(posted);
+	// 从节点中获取事件对象
         ev = ngx_queue_data(q, ngx_event_t, queue);
 
         ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
                       "posted event %p", ev);
-
+	// 从队列中删除该事件
         ngx_delete_posted_event(ev);
-
+	// 调用事件回调函数处理
         ev->handler(ev);
     }
 }

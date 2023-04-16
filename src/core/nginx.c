@@ -267,7 +267,7 @@ main(int argc, char *const *argv)
     if (ngx_process_options(&init_cycle) != NGX_OK) {
         return 1;
     }
-
+    // 
     if (ngx_os_init(log) != NGX_OK) {
         return 1;
     }
@@ -332,30 +332,33 @@ main(int argc, char *const *argv)
     }
 
     if (ngx_signal) {
+	// 读取pid进程号  并向其发送信号
         return ngx_signal_process(cycle, ngx_signal);
     }
 
     ngx_os_status(cycle->log);
 
     ngx_cycle = cycle;
-
+    // 获取核心模块信息
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
-
+    // 判断 当前进程是否是主进程  和 是否是单进程模式
     if (ccf->master && ngx_process == NGX_PROCESS_SINGLE) {
         ngx_process = NGX_PROCESS_MASTER;
     }
 
 #if !(NGX_WIN32)
 
+    // 初始化信号处理函数
     if (ngx_init_signals(cycle->log) != NGX_OK) {
         return 1;
     }
 
+    // 判断是否守护进程方式执行
     if (!ngx_inherited && ccf->daemon) {
         if (ngx_daemon(cycle->log) != NGX_OK) {
             return 1;
         }
-
+	// 守护进程标记
         ngx_daemonized = 1;
     }
 
@@ -368,11 +371,11 @@ main(int argc, char *const *argv)
     if (ngx_create_pidfile(&ccf->pid, cycle->log) != NGX_OK) {
         return 1;
     }
-
+    // 将标准错误输出到指定日志文件中 
     if (ngx_log_redirect_stderr(cycle) != NGX_OK) {
         return 1;
     }
-
+    // 如果日志文件描述符不是标准错误输出文件标识符 则将其关闭 避免冲突
     if (log->file->fd != ngx_stderr) {
         if (ngx_close_file(log->file->fd) == NGX_FILE_ERROR) {
             ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
@@ -383,9 +386,11 @@ main(int argc, char *const *argv)
     ngx_use_stderr = 0;
 
     if (ngx_process == NGX_PROCESS_SINGLE) {
+	// 单进程模式
         ngx_single_process_cycle(cycle);
 
     } else {
+	// 主从模式
         ngx_master_process_cycle(cycle);
     }
 
@@ -533,14 +538,17 @@ ngx_set_environment(ngx_cycle_t *cycle, ngx_uint_t *last)
     ngx_core_conf_t      *ccf;
     ngx_pool_cleanup_t   *cln;
 
+    // 获取核心配置模块
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
 
+    // 查看是否已经设置，设置了直接返回指向上一次调用的指针
     if (last == NULL && ccf->environment) {
         return ccf->environment;
     }
 
+    // 数组  指向数组首地址
     var = ccf->env.elts;
-
+    // 查找TZ字段信息  找到跳转到tz_found
     for (i = 0; i < ccf->env.nelts; i++) {
         if (ngx_strcmp(var[i].data, "TZ") == 0
             || ngx_strncmp(var[i].data, "TZ=", 3) == 0)
@@ -548,7 +556,7 @@ ngx_set_environment(ngx_cycle_t *cycle, ngx_uint_t *last)
             goto tz_found;
         }
     }
-
+    // 没找到 创建一个
     var = ngx_array_push(&ccf->env);
     if (var == NULL) {
         return NULL;
@@ -582,6 +590,7 @@ tz_found:
     }
 
     if (last) {
+	// 已经存在 则在其后添加新的
         env = ngx_alloc((*last + n + 1) * sizeof(char *), cycle->log);
         if (env == NULL) {
             return NULL;
@@ -590,12 +599,18 @@ tz_found:
         *last = n;
 
     } else {
+	// 不存在 则新建新的 设置清理回调函数
         cln = ngx_pool_cleanup_add(cycle->pool, 0);
         if (cln == NULL) {
             return NULL;
         }
 
         env = ngx_alloc((n + 1) * sizeof(char *), cycle->log);
+        if (env == NULL) {
+            return NULL;
+        }
+
+        cln->handler = ngx_cleanup_environment;
         if (env == NULL) {
             return NULL;
         }
@@ -1595,11 +1610,6 @@ ngx_load_module(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     order = ngx_dlsym(handle, "ngx_module_order");
 
-    for (i = 0; modules[i]; i++) {
-        module = modules[i];
-        module->name = names[i];
-
-        if (ngx_add_module(cf, &file, module, order) != NGX_OK) {
             return NGX_CONF_ERROR;
         }
 

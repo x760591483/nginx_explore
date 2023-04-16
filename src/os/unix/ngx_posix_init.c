@@ -45,7 +45,7 @@ ngx_os_init(ngx_log_t *log)
         return NGX_ERROR;
     }
 #endif
-
+    // 修改nginx进程标题 未进入函数查看实现
     if (ngx_init_setproctitle(log) != NGX_OK) {
         return NGX_ERROR;
     }
@@ -71,9 +71,9 @@ ngx_os_init(ngx_log_t *log)
         ngx_cacheline_size = size;
     }
 #endif
-
+    // 获取CPU信息 
     ngx_cpuinfo();
-
+    // 获取文件描述符数 系统调用获取当前进程可以打开的最大文件描述符数
     if (getrlimit(RLIMIT_NOFILE, &rlmt) == -1) {
         ngx_log_error(NGX_LOG_ALERT, log, errno,
                       "getrlimit(RLIMIT_NOFILE) failed");

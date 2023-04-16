@@ -38,10 +38,11 @@ ngx_event_find_timer(void)
     if (ngx_event_timer_rbtree.root == &ngx_event_timer_sentinel) {
         return NGX_TIMER_INFINITE;
     }
-
+    // 获取定时器红黑树的根节点
     root = ngx_event_timer_rbtree.root;
+    // 获取定时器的红黑树的哨兵节点
     sentinel = ngx_event_timer_rbtree.sentinel;
-
+    // 找到红黑树最小键值对应的节点
     node = ngx_rbtree_min(root, sentinel);
 
     timer = (ngx_msec_int_t) (node->key - ngx_current_msec);
