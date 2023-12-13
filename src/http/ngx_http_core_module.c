@@ -819,6 +819,7 @@ ngx_str_t  ngx_http_core_get_method = { 3, (u_char *) "GET" };
 void
 ngx_http_handler(ngx_http_request_t *r)
 {
+    printf("ngx_http_handler --> \n");
     ngx_http_core_main_conf_t  *cmcf;
 
     r->connection->log->action = NULL;
@@ -865,7 +866,7 @@ ngx_http_core_run_phases(ngx_http_request_t *r)
     ngx_int_t                   rc;
     ngx_http_phase_handler_t   *ph;
     ngx_http_core_main_conf_t  *cmcf;
-
+    printf("ngx_http_core_run_phases --> \n");
     cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
 
     ph = cmcf->phase_engine.handlers;
@@ -1253,7 +1254,7 @@ ngx_http_core_content_phase(ngx_http_request_t *r,
     size_t     root;
     ngx_int_t  rc;
     ngx_str_t  path;
-
+    printf("ngx_http_core_content_phase -> \n");
     if (r->content_handler) {
         r->write_event_handler = ngx_http_request_empty_handler;
         ngx_http_finalize_request(r, r->content_handler(r));
@@ -2804,7 +2805,9 @@ ngx_http_get_forwarded_addr_internal(ngx_http_request_t *r, ngx_addr_t *addr,
 
 static char *
 ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
-{
+{// 函数是ngx_http_core模块中定义的用于处理server块配置的函数。它的作用是解析server块中的配置信息，创建一个ngx_http_core_srv_conf_t结构体并初始化它，然后将它添加到cf->ctx数组中。
+ //
+ // 该函数的主要作用是读取和解析server块中的配置信息
     char                        *rv;
     void                        *mconf;
     size_t                       len;
@@ -2813,6 +2816,11 @@ ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
     ngx_conf_t                   pcf;
     ngx_http_module_t           *module;
     struct sockaddr_in          *sin;
+    // typedef struct {
+    //     void        **main_conf;
+    //     void        **srv_conf;
+    //     void        **loc_conf;
+    // } ngx_http_conf_ctx_t;
     ngx_http_conf_ctx_t         *ctx, *http_ctx;
     ngx_http_listen_opt_t        lsopt;
     ngx_http_core_srv_conf_t    *cscf, **cscfp;
@@ -2823,7 +2831,7 @@ ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
         return NGX_CONF_ERROR;
     }
 
-    http_ctx = cf->ctx;
+    http_ctx = cf->ctx;// ctx 为void*
     ctx->main_conf = http_ctx->main_conf;
 
     /* the server{}'s srv_conf */
@@ -2846,7 +2854,7 @@ ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
         }
 
         module = cf->cycle->modules[i]->ctx;
-
+	// 遍历符合模型的ctx 查看每个是否存在对应的创建函数
         if (module->create_srv_conf) {
             mconf = module->create_srv_conf(cf);
             if (mconf == NULL) {

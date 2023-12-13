@@ -193,17 +193,29 @@ ngx_module_t  ngx_event_core_module = {
 void
 ngx_process_events_and_timers(ngx_cycle_t *cycle)
 {
+// 函数是nginx中的主要事件循环函数，用于处理网络事件和计时器事件。该函数会根据当前系统情况调用epoll_wait、select等系统调用阻塞等待事件，一旦事件发生，就会依次处理事件，并且更新定时器事件。该函数执行完之后，如果有需要，会将已处理完的事件从事件队列中移除。
+// 处理事件大致流程：
+// 调用epoll_wait或select等系统调用等待网络事件和定时器事件；
+// 处理等待的网络事件和定时器事件；
+// 处理延迟关闭的连接；
+// 处理所有待处理事件；
+// 更新定时器事件；
+// 移除已处理事件。
     ngx_uint_t  flags;
     ngx_msec_t  timer, delta;
-
-    // 是否使用了 该指令
+    printf("ngx_process_events_and_timers --> \n");
+    // 是否使用了 该指令 高精度时钟
     if (ngx_timer_resolution) {
+	// NGX_TIMER_INFINITE是一个常量，它表示在nginx中使用的一个特殊时间值，即定时器的超时时间为无穷大
         timer = NGX_TIMER_INFINITE;// 使用了 不使用定时器
         flags = 0;
 
     } else {
         timer = ngx_event_find_timer(); // 找出最小的超时时间
         flags = NGX_UPDATE_TIME;// 需要更新系统时间
+				// NGX_UPDATE_TIME是一个常量，它表示在nginx中使用的用于更新时间的标志位。
+				//
+				// 当这个标志位被设置时，nginx将会重新获取当前系统的时间，并更新内部的时间戳。这个标志位通常被用于nginx的事件循环中，用于确保nginx内部的时间戳与系统时间保持同步，并保证定时器的正常工作
 
 #if (NGX_WIN32)
 
@@ -216,7 +228,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
 #endif
     }
 
-    if (ngx_use_accept_mutex) {
+    if (ngx_use_accept_mutex) {//// 如果开启了accept互斥锁，进行下面的操作
         if (ngx_accept_disabled > 0) {
             ngx_accept_disabled--;// 大于0 减一 表示暂时不接受新连接
 
@@ -253,13 +265,17 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
                    "timer delta: %M", delta);
 
     ngx_event_process_posted(cycle, &ngx_posted_accept_events);// 处理已经接受但没没有分配的读写事件连接
+							       //  处理所有已挂起的事件，特别是对于新连接事件，当发现新连接事件时会执行相应的操作。gpt
 
     if (ngx_accept_mutex_held) {// 有锁释放锁
+				// ngx_accept_mutex_held 是表示当前进程是否正在持有互斥锁的标志。
         ngx_shmtx_unlock(&ngx_accept_mutex);
     }
     // 检查并触发已经超时的定时器事件
+    // 函数用于检查定时器是否到期，如果有到期的定时器，则调用相关的回调函数来处理。
     ngx_event_expire_timers();
     // 处理延后处理队列中的读写事件
+    // ngx_event_process_posted 函数用于处理工作进程收到的所有已挂起的事件，例如新连接事件等。它会遍历 ngx_posted_events（已挂起事件的队列），并逐个执行事件处理函数来处理事件。注意，这里处理的事件类型可能不仅限于连接事件，还包括其他类型的事件。在事件队列中，事件的排序是根据其处理时间确定的。因此，如果队列中有多个事件，它们不会互相干扰，而是按照顺序依次处理。
     ngx_event_process_posted(cycle, &ngx_posted_events);
 }
 

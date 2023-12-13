@@ -1610,6 +1610,12 @@ ngx_load_module(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     order = ngx_dlsym(handle, "ngx_module_order");
 
+
+    for (i = 0; modules[i]; i++) {
+	module = modules[i];
+	module->name = names[i];
+
+	if (ngx_add_module(cf, &file, module, order) != NGX_OK) {
             return NGX_CONF_ERROR;
         }
 

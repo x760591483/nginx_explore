@@ -791,7 +791,7 @@ ngx_epoll_process_events(ngx_cycle_t *cycle, ngx_msec_t timer, ngx_uint_t flags)
     ngx_event_t       *rev, *wev;
     ngx_queue_t       *queue;
     ngx_connection_t  *c;
-
+    printf("ngx_epoll_process_events --> \n");
     /* NGX_TIMER_INFINITE == INFTIM */
 
     ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
@@ -898,7 +898,7 @@ ngx_epoll_process_events(ngx_cycle_t *cycle, ngx_msec_t timer, ngx_uint_t flags)
                 ngx_post_event(rev, queue);
 
             } else {
-                rev->handler(rev);
+                rev->handler(rev);// 下一阶段进入 有时为ngx_http_wait_request_handler
             }
         }
 

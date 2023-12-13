@@ -384,7 +384,7 @@ ngx_http_wait_request_handler(ngx_event_t *rev)
     ngx_connection_t          *c;
     ngx_http_connection_t     *hc;
     ngx_http_core_srv_conf_t  *cscf;
-
+    printf("ngx_http_wait_request_handler --> \n");
     c = rev->data;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "http wait request handler");
@@ -1066,7 +1066,7 @@ ngx_http_process_request_line(ngx_event_t *rev)
     ngx_str_t            host;
     ngx_connection_t    *c;
     ngx_http_request_t  *r;
-
+    printf("ngx_http_process_request_line --> \n");
     c = rev->data;
     r = c->data;
 
@@ -1358,7 +1358,7 @@ ngx_http_process_request_headers(ngx_event_t *rev)
 
     c = rev->data;
     r = c->data;
-
+    printf("ngx_http_process_request_headers --> \n");
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, rev->log, 0,
                    "http process request header line");
 
@@ -2019,7 +2019,7 @@ void
 ngx_http_process_request(ngx_http_request_t *r)
 {
     ngx_connection_t  *c;
-
+    printf("ngx_http_process_request --> \n");
     c = r->connection;
 
 #if (NGX_HTTP_SSL)
