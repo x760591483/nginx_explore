@@ -28,7 +28,7 @@ static void ngx_cache_manager_process_handler(ngx_event_t *ev);
 static void ngx_cache_loader_process_handler(ngx_event_t *ev);
 
 
-ngx_uint_t    ngx_process;
+ngx_uint_t    ngx_process;// 表示当前进程的运行阶段，有一个预定义的常量： - NGX_PROCESS_MASTER: 主进程 - NGX_PROCESS_SINGLE: 单进程模式 - NGX_PROCESS_WORKER: 工作进程 - NGX_PROCESS_HELPER: 辅助进程 - NGX_PROCESS_INVALID: 无效进程
 ngx_uint_t    ngx_worker;
 ngx_pid_t     ngx_pid;
 ngx_pid_t     ngx_parent;
@@ -51,6 +51,46 @@ ngx_uint_t    ngx_daemonized;
 sig_atomic_t  ngx_noaccept;
 ngx_uint_t    ngx_noaccepting;
 ngx_uint_t    ngx_restart;
+
+/**来自gpt解释
+ * ngx_worker: 当前进程的工作进程号，从1开始递增。
+
+ngx_pid: 当前进程的进程ID。
+
+ngx_parent: 当前进程的父进程ID。
+
+ngx_reap: 标志变量，表示子进程已终止且父进程需要处理。
+
+ngx_sigio: 标志变量，表示发生了I/O事件。
+
+ngx_sigalrm: 标志变量，表示收到了定时器信号。
+
+ngx_terminate: 标志变量，表示需要终止进程。
+
+ngx_quit: 标志变量，表示需要退出进程。
+
+ngx_debug_quit: 标志变量，表示需要以调试模式退出进程。
+
+ngx_exiting: 标志变量，表示正在退出进程。
+
+ngx_reconfigure: 标志变量，表示需要重新配置。
+
+ngx_reopen: 标志变量，表示需要重新打开文件。
+
+ngx_change_binary: 标志变量，表示需要切换到新的二进制文件。
+
+ngx_new_binary: 新的二进制文件的进程ID。
+
+ngx_inherited: 标志变量，表示当前进程是继承自原始进程。
+
+ngx_daemonized: 标志变量，表示当前进程是否是守护进程。
+
+ngx_noaccept: 标志变量，表示当前进程不接受新的连接。
+
+ngx_noaccepting: 标志变量，表示当前进程正在处理新的连接。
+
+ngx_restart: 标志变量，表示需要重新启动进程。
+*/
 
 
 static u_char  master_process[] = "master process";

@@ -23,10 +23,11 @@ static ngx_msec_t ngx_monotonic_time(time_t sec, ngx_uint_t msec);
 
 #define NGX_TIME_SLOTS   64
 
+// slot: 这个变量表示一个时间槽（slot），通常用于时间轮（Timer Wheel）等时间管理机制中。时间轮是一种基于时间槽的数据结构，用于管理定时任务和事件调度。这个变量用来指示当前时间轮的时间槽位置，用来确定要执行的任务或事件。在每个时间槽更新之后，slot 变量的值会相应地更新，以指示下一个要执行的时间槽。
 static ngx_uint_t        slot;
 static ngx_atomic_t      ngx_time_lock;
 
-volatile ngx_msec_t      ngx_current_msec;
+volatile ngx_msec_t      ngx_current_msec;// volatile 的变量意味着它的值随时可能在程序的其他地方被修改，因此编译器不能对该变量进行优化，确保每次访问时都从内存中获取最新的值
 volatile ngx_time_t     *ngx_cached_time;
 volatile ngx_str_t       ngx_cached_err_log_time;
 volatile ngx_str_t       ngx_cached_http_time;
@@ -45,7 +46,7 @@ volatile ngx_str_t       ngx_cached_syslog_time;
 static ngx_int_t         cached_gmtoff;
 #endif
 
-static ngx_time_t        cached_time[NGX_TIME_SLOTS];
+static ngx_time_t        cached_time[NGX_TIME_SLOTS];// 64
 static u_char            cached_err_log_time[NGX_TIME_SLOTS]
                                     [sizeof("1970/09/28 12:00:00")];
 static u_char            cached_http_time[NGX_TIME_SLOTS]
@@ -196,16 +197,16 @@ ngx_time_update(void)
 static ngx_msec_t
 ngx_monotonic_time(time_t sec, ngx_uint_t msec)
 {
-#if (NGX_HAVE_CLOCK_MONOTONIC)
+#if (NGX_HAVE_CLOCK_MONOTONIC)// 如果编译配置中定义了NGX_HAVE_CLOCK_MONOTONIC，表示系统支持clock_gettime函数
     struct timespec  ts;
 
-#if defined(CLOCK_MONOTONIC_FAST)
+#if defined(CLOCK_MONOTONIC_FAST)// 如果编译时定义了 CLOCK_MONOTONIC_FAST ，表示系统支持高精度的单调时钟。
     clock_gettime(CLOCK_MONOTONIC_FAST, &ts);
 
-#elif defined(CLOCK_MONOTONIC_COARSE)
+#elif defined(CLOCK_MONOTONIC_COARSE)// 如果没有定义CLOCK_MONOTONIC_FAST但定义了CLOCK_MONOTONIC_COARSE，表示系统支持较粗粒度的单调时钟。
     clock_gettime(CLOCK_MONOTONIC_COARSE, &ts);
 
-#else
+#else// 表示系统仅支持普通的单调时钟。
     clock_gettime(CLOCK_MONOTONIC, &ts);
 #endif
 

@@ -85,7 +85,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     //配置文件前置路径参数只有在main函数中由，所以在这里通过old_cycle出入进来
     // Nginx 配置文件所在目录的路径:比如 /usr/local/nginx/conf/
     cycle->conf_prefix.len = old_cycle->conf_prefix.len;
-    cycle->conf_prefix.data = ngx_pstrdup(pool, &old_cycle->conf_prefix);
+    cycle->conf_prefix.data = ngx_pstrdup(pool, &old_cycle->conf_prefix);// ngx_pstrdup复制字符串
     if (cycle->conf_prefix.data == NULL) {
         ngx_destroy_pool(pool);
         return NULL;
@@ -149,9 +149,17 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         ngx_destroy_pool(pool);
         return NULL;
     }
-    //红黑树，平衡二叉树一种，用来坐二分搜索用的
+    //红黑树，平衡二叉树一种，用来坐二分搜索用的 ngx_rbtree_t config_dump_rbtree红黑树
+    // ngx_rbtree_node_t         config_dump_sentinel红黑树节点
     ngx_rbtree_init(&cycle->config_dump_rbtree, &cycle->config_dump_sentinel,
                     ngx_str_rbtree_insert_value);
+    /**
+     * 函数是Nginx中的一个函数。它的作用是初始化一个红黑树。
+这个函数的参数包括：
+cycle->config_dump_rbtree：表示待初始化的红黑树，cycle是Nginx的主循环结构体，config_dump_rbtree是其中的一个成员变量，用于保存配置信息。
+cycle->config_dump_sentinel：表示红黑树的哨兵节点，也是一个成员变量。
+ngx_str_rbtree_insert_value：表示红黑树中节点的插入算法，是一个函数指针
+    */
 
     if (old_cycle->open_files.part.nelts) {
         n = old_cycle->open_files.part.nelts;

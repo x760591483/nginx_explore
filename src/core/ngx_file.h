@@ -60,6 +60,17 @@ typedef struct {
     u_char                    *conf_file;
     ngx_uint_t                 line;
 } ngx_path_t;
+/*
+name：路径的名称；
+len：路径名称的长度；
+level：路径在配置中的层级；
+manager：路径所属的ngx_path_manager_t结构体；
+loader：路径的加载器函数，用于加载路径的值；
+data：路径的附加数据
+路径管理：ngx_path_t结构体可以通过level字段的不同值，把不同层级的路径进行分类管理。这样可以方便进行路径的查找、添加和删除等操作。
+路径加载：使用loader函数加载路径的值，可以根据指定的路径获取相应的数据。这在Nginx的配置解析过程中非常重要，因为它允许将配置中的路径映射为真实的文件或目录。
+附加数据：data字段可以用来存储路径相关的附加数据，可以根据自己的需求进行扩展和使用
+*/
 
 
 typedef struct {
