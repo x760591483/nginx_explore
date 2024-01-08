@@ -52,7 +52,13 @@ ngx_cycle_modules(ngx_cycle_t *cycle)
     if (cycle->modules == NULL) {
         return NGX_ERROR;
     }
-    //把全局静态变量的内存信息拷贝过来，这个ngx_modules是在编译的时候确定好的，即你安装的时候指定需要使用的扩展，具体可以查看上一章的内容
+    //把全局静态变量的内存信息拷贝过来，这个ngx_modules是在编译的时候确定好的，即你安装的时候指定需要使用的扩展，
+    // ngx_module_t *ngx_modules[] = {
+    //   &ngx_core_module, // 每个模型定义的变量
+    //  &ngx_errlog_module,
+    //  &ngx_conf_module,
+    //  &ngx_regex_module,
+    //  &ngx_events_module,
     ngx_memcpy(cycle->modules, ngx_modules,
                ngx_modules_n * sizeof(ngx_module_t *));
 

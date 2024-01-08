@@ -459,6 +459,16 @@ typedef struct {
 #endif
 } ngx_event_conf_t;
 
+/***
+connections: 表示工作进程可以处理的最大并发连接数。
+use: 表示工作进程实际使用的连接数。
+multi_accept: 是否开启多个请求同时接受。
+accept_mutex: 是否开启接受锁。
+accept_mutex_delay: 接受锁的延迟时间。
+name: 监听套接字的名称。
+debug_connection: 调试连接的数组指针。
+*/
+
 
 typedef struct {
     ngx_str_t              *name;

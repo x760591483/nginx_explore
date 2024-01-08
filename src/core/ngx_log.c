@@ -443,12 +443,12 @@ ngx_int_t
 ngx_log_redirect_stderr(ngx_cycle_t *cycle)
 {
     ngx_fd_t  fd;
-
+    // 如果已经重定向 直接退出
     if (cycle->log_use_stderr) {
         return NGX_OK;
     }
 
-    /* file log always exists when we are called */
+    /* file log always exists when we are called 获取文件的句柄 看若不=标准错误则继续判断*/
     fd = ngx_log_get_file_log(cycle->log)->file->fd;
 
     if (fd != ngx_stderr) {

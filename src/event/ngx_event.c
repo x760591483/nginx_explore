@@ -1241,7 +1241,7 @@ ngx_event_core_create_conf(ngx_cycle_t *cycle)
     if (ecf == NULL) {
         return NULL;
     }
-
+    // 初始化  未设置
     ecf->connections = NGX_CONF_UNSET_UINT;
     ecf->use = NGX_CONF_UNSET_UINT;
     ecf->multi_accept = NGX_CONF_UNSET;

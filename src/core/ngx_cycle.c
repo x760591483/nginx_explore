@@ -229,7 +229,7 @@ ngx_str_rbtree_insert_value：表示红黑树中节点的插入算法，是一�
         return NULL;
     }
 
-    // NGX_MAXHOSTNAMELEN 256 获取本地主机名
+    // NGX_MAXHOSTNAMELEN 256 获取本地主机名 c语言
     if (gethostname(hostname, NGX_MAXHOSTNAMELEN) == -1) {
         ngx_log_error(NGX_LOG_EMERG, log, ngx_errno, "gethostname() failed");
         ngx_destroy_pool(pool);
@@ -263,11 +263,18 @@ ngx_str_rbtree_insert_value：表示红黑树中节点的插入算法，是一�
         }
         // 获取该模块对象的上下文结构体，对于核心模块
         //  * 其上下文结构体固定为 ngx_core_module_t
+        /**
+         typedef struct {
+            ngx_str_t             name;
+            void               *(*create_conf)(ngx_cycle_t *cycle);
+            char               *(*init_conf)(ngx_cycle_t *cycle, void *conf);
+        } ngx_core_module_t;
+        */
         module = cycle->modules[i]->ctx;//模块的上下文
 
         if (module->create_conf) {
             // 调用核心模块的 create_conf 函数，创建实际的配置信息存储空间 并初始化该配置信息结构体  第0个是ngx_core_module_create_conf函数  就是创建ngx_core_conf_t结构体并初始化了
-            rv = module->create_conf(cycle);
+            rv = module->create_conf(cycle);// 返回是 void* 其中一项ngx_event_conf_t是enevt返回的 
             if (rv == NULL) {
                 ngx_destroy_pool(pool);
                 return NULL;
@@ -328,7 +335,7 @@ ngx_str_rbtree_insert_value：表示红黑树中节点的插入算法，是一�
         ngx_log_stderr(0, "the configuration file %s syntax is ok",
                        cycle->conf_file.data);
     }
-    // 遍历所有非核心模块
+    // 遍历所有核心模块
     for (i = 0; cycle->modules[i]; i++) {
         if (cycle->modules[i]->type != NGX_CORE_MODULE) {
             continue;
@@ -338,8 +345,7 @@ ngx_str_rbtree_insert_value：表示红黑树中节点的插入算法，是一�
 
         if (module->init_conf) {
             //  init_conf 是用于对上面解析完配置文件后对用户没有 设置的核心模块配置指令设置默认值
-            if (module->init_conf(cycle,
-                                  cycle->conf_ctx[cycle->modules[i]->index])
+            if (module->init_conf(cycle, cycle->conf_ctx[cycle->modules[i]->index])
                 == NGX_CONF_ERROR)
             {
                 environ = senv;
