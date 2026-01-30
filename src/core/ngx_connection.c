@@ -16,6 +16,11 @@ ngx_os_io_t  ngx_io;
 static void ngx_drain_connections(ngx_cycle_t *cycle);
 
 
+/*
+cf: nginx配置上下文
+sockaddr: 要监听的socket地址结构
+socklen: socket地址长度
+*/
 ngx_listening_t *
 ngx_create_listening(ngx_conf_t *cf, struct sockaddr *sockaddr,
     socklen_t socklen)
@@ -25,6 +30,10 @@ ngx_create_listening(ngx_conf_t *cf, struct sockaddr *sockaddr,
     struct sockaddr  *sa;
     u_char            text[NGX_SOCKADDR_STRLEN];
 
+    /*
+    从全局监听数组中分配一个新的 ngx_listening_t 对象
+cf->cycle->listening 是nginx全局的监听数组
+    */
     ls = ngx_array_push(&cf->cycle->listening);
     if (ls == NULL) {
         return NULL;
@@ -42,10 +51,26 @@ ngx_create_listening(ngx_conf_t *cf, struct sockaddr *sockaddr,
     ls->sockaddr = sa;
     ls->socklen = socklen;
 
+    /*
+    将socket地址转换为可读的文本格式（如 "127.0.0.1:80"）
+    ngx_sock_ntop 是nginx的地址转换函数
+    */
     len = ngx_sock_ntop(sa, socklen, text, NGX_SOCKADDR_STRLEN, 1);
+    // 将上述转换后的文本用printf进行打印出来
+    printf("ngx_create_listening ngx_sock_ntop: %d\n", len);
+    for (int i = 0; i < len; i++) {
+        printf("%c", text[i]);
+    }
+    printf("\n");
+
     ls->addr_text.len = len;
 
     switch (ls->sockaddr->sa_family) {
+/*
+根据地址族类型设置地址文本的最大长度
+支持IPv4、IPv6、Unix域套接字等
+Unix域套接字需要额外的一个字节（用于null终止符）
+*/
 #if (NGX_HAVE_INET6)
     case AF_INET6:
         ls->addr_text_max_len = NGX_INET6_ADDRSTRLEN;
@@ -73,6 +98,10 @@ ngx_create_listening(ngx_conf_t *cf, struct sockaddr *sockaddr,
     ngx_memcpy(ls->addr_text.data, text, len);
 
 #if !(NGX_WIN32)
+    /*
+    在非Windows平台上初始化红黑树
+    用于UDP连接的管理
+    */
     ngx_rbtree_init(&ls->rbtree, &ls->sentinel, ngx_udp_rbtree_insert_value);
 #endif
 
