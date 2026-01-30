@@ -1707,6 +1707,11 @@ ngx_http_init_listening(ngx_conf_t *cf, ngx_http_conf_port_t *port)
 }
 
 
+/*
+cf: nginx配置上下文
+addr: HTTP配置的地址信息
+返回值：成功返回监听对象指针，失败返回NULL
+*/
 static ngx_listening_t *
 ngx_http_add_listening(ngx_conf_t *cf, ngx_http_conf_addr_t *addr)
 {
@@ -1719,18 +1724,26 @@ ngx_http_add_listening(ngx_conf_t *cf, ngx_http_conf_addr_t *addr)
         return NULL;
     }
 
-    ls->addr_ntop = 1;
+    ls->addr_ntop = 1; // 启用地址到文本的转换功能
 
-    ls->handler = ngx_http_init_connection;
+    ls->handler = ngx_http_init_connection; // 设置当有新连接到达时的处理函数
 
-    cscf = addr->default_server;
-    ls->pool_size = cscf->connection_pool_size;
+    cscf = addr->default_server; // 获取默认服务器配置
+    ls->pool_size = cscf->connection_pool_size; // 设置连接池大小
+    /*
+        连接池大小决定了每个worker进程可以同时处理的连接数
+        过大会浪费内存，过小会影响并发性能
+    */
 
-    clcf = cscf->ctx->loc_conf[ngx_http_core_module.ctx_index];
+    clcf = cscf->ctx->loc_conf[ngx_http_core_module.ctx_index]; // 获取location级别的配置
 
-    ls->logp = clcf->error_log;
-    ls->log.data = &ls->addr_text;
-    ls->log.handler = ngx_accept_log_error;
+    ls->logp = clcf->error_log; // 设置错误日志
+    ls->log.data = &ls->addr_text; //  设置日志数据为地址文本
+    ls->log.handler = ngx_accept_log_error; // 设置日志处理函数
+    /*
+        日志记录对于调试网络问题非常重要
+        地址文本便于在日志中识别具体的监听地址
+    */
 
 #if (NGX_WIN32)
     {
@@ -1745,17 +1758,38 @@ ngx_http_add_listening(ngx_conf_t *cf, ngx_http_conf_addr_t *addr)
     }
 #endif
 
+    /*
+        backlog: 监听队列长度，等待accept的连接数
+        rcvbuf: 接收缓冲区大小
+        sndbuf: 发送缓冲区大小
+    */
     ls->backlog = addr->opt.backlog;
     ls->rcvbuf = addr->opt.rcvbuf;
     ls->sndbuf = addr->opt.sndbuf;
 
-    ls->keepalive = addr->opt.so_keepalive;
+    ls->keepalive = addr->opt.so_keepalive; //  启用TCP保活机制
 #if (NGX_HAVE_KEEPALIVE_TUNABLE)
+    /*
+        keepidle: 空闲多长时间后开始保活探测
+        keepintvl: 保活探测的间隔时间
+        keepcnt: 保活探测的次数
+        TCP保活机制用于检测连接是否仍然有效
+        可以及时发现断开的连接，释放资源
+        对于长连接（如HTTP keep-alive）特别重要
+    */
     ls->keepidle = addr->opt.tcp_keepidle;
     ls->keepintvl = addr->opt.tcp_keepintvl;
     ls->keepcnt = addr->opt.tcp_keepcnt;
 #endif
 
+/*
+accept_filter: 设置accept过滤器
+deferred_accept: 启用延迟接受
+网络常识：
+延迟接受可以提高性能，避免接受无效连接
+只在有实际数据到达时才接受连接
+这是BSD和Linux的优化特性
+*/
 #if (NGX_HAVE_DEFERRED_ACCEPT && defined SO_ACCEPTFILTER)
     ls->accept_filter = addr->opt.accept_filter;
 #endif
@@ -1765,18 +1799,40 @@ ngx_http_add_listening(ngx_conf_t *cf, ngx_http_conf_addr_t *addr)
 #endif
 
 #if (NGX_HAVE_INET6)
+    // 设置IPv6 socket是否只接受IPv6连接
     ls->ipv6only = addr->opt.ipv6only;
 #endif
 
 #if (NGX_HAVE_SETFIB)
+    /*
+    作用：设置FIB（转发信息库）编号
+网络常识：
+FIB用于多路由表环境
+可以控制连接使用的路由表
+主要用于网络策略路由
+    */
     ls->setfib = addr->opt.setfib;
 #endif
 
 #if (NGX_HAVE_TCP_FASTOPEN)
+    /*
+    作用：启用TCP快速打开功能
+网络常识：
+TCP快速打开可以在SYN包中携带数据
+减少连接建立的时间
+提高短连接的性能
+    */
     ls->fastopen = addr->opt.fastopen;
 #endif
 
 #if (NGX_HAVE_REUSEPORT)
+    /*
+    作用：启用端口重用功能
+网络常识：
+允许多个进程绑定同一个端口
+内核会自动分发连接给不同的进程
+提高多进程服务器的性能
+    */
     ls->reuseport = addr->opt.reuseport;
 #endif
 
