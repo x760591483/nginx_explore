@@ -203,9 +203,35 @@ ngx_http_header_t  ngx_http_headers_in[] = {
 };
 
 
+/*
+连接初始化: 为新建立的连接创建HTTP相关数据结构
+虚拟主机匹配: 根据连接地址确定使用哪个虚拟主机配置
+协议处理: 处理SSL/TLS、HTTP/2、PROXY协议等
+事件设置: 配置异步I/O事件处理器
+超时管理: 设置连接超时机制
+日志配置: 设置连接日志记录
+这个函数是HTTP请求处理的入口点，为后续的请求解析和处理做准备。
+
+*/
+
 void
 ngx_http_init_connection(ngx_connection_t *c)
 {
+    /*
+    i: 循环计数器
+rev: 读事件对象
+sin: IPv4地址结构
+port: HTTP端口配置
+addr: IPv4地址配置
+ctx: HTTP日志上下文
+hc: HTTP连接对象
+cscf: HTTP核心服务器配置
+sin6: IPv6地址结构（条件编译）
+addr6: IPv6地址配置（条件编译）
+网络常识：
+事件对象用于异步I/O处理
+地址结构用于存储网络地址信息
+    */
     ngx_uint_t                 i;
     ngx_event_t               *rev;
     struct sockaddr_in        *sin;
@@ -219,6 +245,12 @@ ngx_http_init_connection(ngx_connection_t *c)
     ngx_http_in6_addr_t       *addr6;
 #endif
 
+/*
+    ngx_pcalloc: 从内存池分配并清零内存
+sizeof(ngx_http_connection_t): HTTP连接结构体大小
+检查内存分配是否成功
+c->data = hc: 将HTTP连接对象关联到连接
+*/
     hc = ngx_pcalloc(c->pool, sizeof(ngx_http_connection_t));
     if (hc == NULL) {
         ngx_http_close_connection(c);
@@ -228,7 +260,12 @@ ngx_http_init_connection(ngx_connection_t *c)
     c->data = hc;
 
     /* find the server configuration for the address:port */
-
+    /*
+    作用：获取监听端口对应的服务器配置
+    网络常识：
+    一个端口可以绑定多个虚拟主机
+    通过地址匹配确定使用哪个虚拟主机
+    */
     port = c->listening->servers;
 
     if (port->naddrs > 1) {
@@ -237,6 +274,14 @@ ngx_http_init_connection(ngx_connection_t *c)
          * there are several addresses on this port and one of them
          * is an "*:port" wildcard so getsockname() in ngx_http_server_addr()
          * is required to determine a server address
+         */
+         /*
+         作用：获取本地socket地址port->naddrs > 1: 检查是否有多个地址绑定到同一端口
+            ngx_connection_local_sockaddr: 获取本地socket地址
+            如果获取失败，关闭连接
+            网络常识：
+            多个地址可以绑定到同一端口（如多个IP地址）
+            需要确定客户端连接的是哪个具体地址
          */
 
         if (ngx_connection_local_sockaddr(c, NULL, 0) != NGX_OK) {
@@ -264,7 +309,16 @@ ngx_http_init_connection(ngx_connection_t *c)
 
             break;
 #endif
-
+        /*
+            sin = (struct sockaddr_in *) c->local_sockaddr: 转换为IPv4地址结构
+            addr = port->addrs: 获取IPv4地址配置数组
+            for (i = 0; i < port->naddrs - 1; i++): 遍历所有地址
+            addr[i].addr == sin->sin_addr.s_addr: 比较IPv4地址
+            hc->addr_conf = &addr[i].conf: 设置匹配的地址配置
+            网络常识：
+            IPv4地址是32位（4字节）
+            地址匹配用于确定虚拟主机配置
+        */
         default: /* AF_INET */
             sin = (struct sockaddr_in *) c->local_sockaddr;
 
@@ -284,7 +338,14 @@ ngx_http_init_connection(ngx_connection_t *c)
         }
 
     } else {
-
+        /*
+            如果只有一个地址，直接使用第一个配置
+            根据地址族类型选择对应的配置
+            网络常识：
+            单地址配置更简单，不需要地址匹配
+            直接使用默认配置
+        
+        */
         switch (c->local_sockaddr->sa_family) {
 
 #if (NGX_HAVE_INET6)
@@ -301,9 +362,26 @@ ngx_http_init_connection(ngx_connection_t *c)
         }
     }
 
+    /*
+        作用：设置HTTP配置上下文，包含所有模块的配置
+        网络常识：
+        配置上下文包含server、location等配置
+        用于后续的请求处理
+    
+    */
     /* the default server configuration for the address:port */
     hc->conf_ctx = hc->addr_conf->default_server->ctx;
 
+    /*
+        ngx_palloc: 分配日志上下文内存
+        检查内存分配是否成功
+        ctx->connection = c: 关联连接对象
+        ctx->current_request = NULL: 初始化当前请求为空
+        网络常识：
+        日志上下文用于记录连接和请求的日志信息
+        便于调试和监控
+    
+    */
     ctx = ngx_palloc(c->pool, sizeof(ngx_http_log_ctx_t));
     if (ctx == NULL) {
         ngx_http_close_connection(c);
@@ -319,19 +397,62 @@ ngx_http_init_connection(ngx_connection_t *c)
     c->log->data = ctx;
     c->log->action = "waiting for request";
 
+    /*
+        c->log->connection = c->number: 设置连接编号
+        c->log->handler = ngx_http_log_error: 设置日志处理函数
+        c->log->data = ctx: 设置日志数据
+        c->log->action = "waiting for request": 设置当前动作描述
+        网络常识：
+        连接编号用于标识不同的连接
+        日志记录有助于问题排查
+    */
+    /*
+        作用：设置连接的错误日志级别
+        网络常识：
+        不同级别的日志用于不同场景
+        INFO级别适合记录正常操作
+    */
     c->log_error = NGX_ERROR_INFO;
 
+    /*
+        rev = c->read: 获取读事件对象
+        rev->handler = ngx_http_wait_request_handler: 设置读事件处理器
+        c->write->handler = ngx_http_empty_handler: 设置写事件处理器为空
+        网络常识：
+        事件处理器是异步I/O的核心
+        读事件用于接收客户端数据
+        写事件用于发送响应数据
+    */
     rev = c->read;
     rev->handler = ngx_http_wait_request_handler;
     c->write->handler = ngx_http_empty_handler;
 
 #if (NGX_HTTP_V2)
+/*
+    检查是否启用HTTP/2
+如果启用，设置HTTP/2初始化处理器
+网络常识：
+HTTP/2是HTTP协议的新版本
+支持多路复用，提高性能
+
+*/
     if (hc->addr_conf->http2) {
         rev->handler = ngx_http_v2_init;
     }
 #endif
 
 #if (NGX_HTTP_SSL)
+/*
+    sscf = ngx_http_get_module_srv_conf(...): 获取SSL配置
+    if (sscf->enable || hc->addr_conf->ssl): 检查是否启用SSL
+    hc->ssl = 1: 标记为SSL连接
+    c->log->action = "SSL handshaking": 设置日志动作为SSL握手
+    rev->handler = ngx_http_ssl_handshake: 设置SSL握手处理器
+    网络常识：
+    SSL握手是建立安全连接的过程
+    包括证书验证、密钥交换等步骤
+
+*/
     {
     ngx_http_ssl_srv_conf_t  *sscf;
 
@@ -346,13 +467,28 @@ ngx_http_init_connection(ngx_connection_t *c)
 #endif
 
     if (hc->addr_conf->proxy_protocol) {
+        /*
+            检查是否启用PROXY协议
+            如果启用，标记连接并设置日志动作
+            网络常识：
+            PROXY协议用于传递客户端真实信息
+            常用于负载均衡器后面的服务器
+        */
         hc->proxy_protocol = 1;
         c->log->action = "reading PROXY protocol";
     }
 
     if (rev->ready) {
         /* the deferred accept(), iocp */
-
+        /*
+            if (rev->ready): 检查是否有数据可读
+            if (ngx_use_accept_mutex): 检查是否使用accept互斥锁
+            ngx_post_event(rev, &ngx_posted_events): 将事件加入队列
+            rev->handler(rev): 直接处理事件
+            网络常识：
+            延迟接受可以提高性能
+            互斥锁用于多进程间的同步
+        */
         if (ngx_use_accept_mutex) {
             ngx_post_event(rev, &ngx_posted_events);
             return;
@@ -361,12 +497,26 @@ ngx_http_init_connection(ngx_connection_t *c)
         rev->handler(rev);
         return;
     }
-
+    /*
+    cscf = ngx_http_get_module_srv_conf(...): 获取核心模块配置
+    ngx_add_timer(rev, cscf->client_header_timeout): 添加客户端头超时定时器
+    ngx_reusable_connection(c, 1): 标记连接为可重用
+    网络常识：
+    超时机制防止连接长时间占用资源
+    连接重用可以提高性能
+    */
     cscf = ngx_http_get_module_srv_conf(hc->conf_ctx, ngx_http_core_module);
 
     ngx_add_timer(rev, cscf->client_header_timeout);
     ngx_reusable_connection(c, 1);
 
+    /*
+        ngx_handle_read_event(rev, 0): 启动读事件监听
+        如果失败，关闭连接
+        网络常识：
+        读事件监听用于接收客户端数据
+        这是异步I/O的关键步骤
+    */
     if (ngx_handle_read_event(rev, 0) != NGX_OK) {
         ngx_http_close_connection(c);
         return;

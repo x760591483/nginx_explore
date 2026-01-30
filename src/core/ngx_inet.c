@@ -178,7 +178,14 @@ ngx_inet6_addr(u_char *p, size_t len, u_char *addr)
 
 #endif
 
-
+/*
+sa: socket地址结构体指针
+socklen: socket地址长度
+text: 输出缓冲区，用于存储转换后的文本
+len: 输出缓冲区长度
+port: 是否包含端口号的标志
+返回值：转换后的文本长度
+*/
 size_t
 ngx_sock_ntop(struct sockaddr *sa, socklen_t socklen, u_char *text, size_t len,
     ngx_uint_t port)
@@ -197,7 +204,7 @@ ngx_sock_ntop(struct sockaddr *sa, socklen_t socklen, u_char *text, size_t len,
 
     switch (sa->sa_family) {
 
-    case AF_INET:
+    case AF_INET: //IPv4地址处理
 
         sin = (struct sockaddr_in *) sa;
         p = (u_char *) &sin->sin_addr;
@@ -212,7 +219,7 @@ ngx_sock_ntop(struct sockaddr *sa, socklen_t socklen, u_char *text, size_t len,
 
         return (p - text);
 
-#if (NGX_HAVE_INET6)
+#if (NGX_HAVE_INET6) //IPv6地址处理
 
     case AF_INET6:
 
@@ -236,7 +243,7 @@ ngx_sock_ntop(struct sockaddr *sa, socklen_t socklen, u_char *text, size_t len,
 
 #if (NGX_HAVE_UNIX_DOMAIN)
 
-    case AF_UNIX:
+    case AF_UNIX: //Unix域套接字处理
         saun = (struct sockaddr_un *) sa;
 
         /* on Linux sockaddr might not include sun_path at all */
