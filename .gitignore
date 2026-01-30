@@ -1,3 +1,7 @@
 build*
 test*
 history
+Makefile
+mybuild/
+aa
+objs/
